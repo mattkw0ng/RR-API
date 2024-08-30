@@ -1,0 +1,2 @@
+# Connect to aws server testdatabase
+psql -h 3.20.203.208 -U testuser -d testdatabase
