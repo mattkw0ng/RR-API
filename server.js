@@ -18,7 +18,7 @@ const PORT = 5000;
 
 app.use(bodyParser.json());
 const corsOptions = {
-  origin: 'http://localhost:3000', // Set to the origin of frontend
+  origin: 'http://3.20.203.208:3000', // Set to the origin of frontend
   credentials: true, // Allow credentials (cookies, authentication headers)
 };
 
@@ -74,5 +74,5 @@ app.use('/api', roomsRoutes)
 
 app.listen(PORT, () => {
   authorize();
-  console.log(`\nServer running on http://localhost:${PORT}`);
+  console.log(`\nServer running on http://3.20.203.208:${PORT}`);
 });
