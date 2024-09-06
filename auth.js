@@ -3,7 +3,8 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 const pool = require('./db');
-const { google } = require('googleapis')
+const { google } = require('googleapis');
+const { default: CLIENT_URL } = require('./config');
 
 async function authorizeUser(email) {
   const result = await pool.query('SELECT access_token, refresh_token, token_expiry FROM users WHERE email = $1', [email]);
@@ -47,12 +48,12 @@ async function authorizeUser(email) {
 router.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: 'http://localhost:3000/login' }), // Redirect to React router's login page on failure
+router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: CLIENT_URL + '/login' }), // Redirect to React router's login page on failure
   (req, res) => {
 
     req.session.token = req.user.token;
     console.log('==============\n', req.user)
-    res.redirect('http://localhost:3000/profile'); // Redirect to React router's home page on success
+    res.redirect(CLIENT_URL + '/profile'); // Redirect to React router's home page on success
   });
 
 // router.post('/auth/google/callback', async (req, res) => {
@@ -82,7 +83,7 @@ router.get('/logout', (req, res) => {
     if (err) {
       return next(err);
     }
-    res.redirect('http://localhost:3000/login'); // Redirect to React router's login page on logout
+    res.redirect(CLIENT_URL + '/login'); // Redirect to React router's login page on logout
   });
 });
 
