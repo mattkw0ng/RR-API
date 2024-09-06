@@ -10,6 +10,7 @@ const initializePassport = require('./passportConfig');
 const authRoutes = require('./auth');
 const eventRoutes = require('./events');
 const roomsRoutes = require('./rooms');
+const { CLIENT_URL } = require('./config');
 
 // Initialize app & Passport
 const app = express();
@@ -18,7 +19,7 @@ const PORT = 5000;
 
 app.use(bodyParser.json());
 const corsOptions = {
-  origin: 'http://3.20.203.208:3000', // Set to the origin of frontend
+  origin: CLIENT_URL, // Set to the origin of frontend
   credentials: true, // Allow credentials (cookies, authentication headers)
 };
 
