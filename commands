@@ -1,2 +1,57 @@
 # Connect to aws server testdatabase
 psql -h 3.20.203.208 -U testuser -d testdatabase
+psql -h 18.191.2.93 -U testuser -d testdatabase
+# password 
+
+# Database Setup
+[ec2-user@ip-172-31-16-18 RR-API]$ sudo -i -u postgres psql
+postgres=# CREATE USER roomres WITH PASSWORD 'Empower2k';
+CREATE ROLE
+postgres=# CREATE DATABASE room_reservation;
+CREATE DATABASE
+postgres=# GRANT ALL PRIVILEGES ON DATABASE room_reservation TO roomres ;
+GRANT
+postgres=# \l
+                                                 List of databases
+       Name       |  Owner   | Encoding | Collate |  Ctype  | ICU Locale | Locale Provider |   Access privileges   
+------------------+----------+----------+---------+---------+------------+-----------------+-----------------------
+ postgres         | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | 
+ room_reservation | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | =Tc/postgres         +
+                  |          |          |         |         |            |                 | postgres=CTc/postgres+
+                  |          |          |         |         |            |                 | roomres=CTc/postgres
+ template0        | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | =c/postgres          +
+                  |          |          |         |         |            |                 | postgres=CTc/postgres
+ template1        | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | =c/postgres          +
+                  |          |          |         |         |            |                 | postgres=CTc/postgres
+ testdatabase     | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | =Tc/postgres         +
+                  |          |          |         |         |            |                 | postgres=CTc/postgres+
+                  |          |          |         |         |            |                 | testuser=CTc/postgres
+(5 rows)
+
+postgres=# 
+
+# users table schema
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(255),
+    google_id VARCHAR(255) UNIQUE,
+    access_token TEXT,
+    refresh_token TEXT,
+    token_expiry TIMESTAMP
+);
+
+# rooms table schema
+CREATE TABLE rooms (
+    id SERIAL PRIMARY KEY,
+    room_name VARCHAR(255) UNIQUE NOT NULL,
+    calendar_id VARCHAR(255) NOT NULL,
+    capacity INTEGER NOT NULL,
+    resources TEXT[] NOT NULL,
+    building_location VARCHAR(255)
+);
+
+
+# Connect to EC2 instance
+ssh -i "MattKwong.pem" ec2-user@api.sjcactest.com
+cd RoomReservation/RR-API/
