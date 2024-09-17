@@ -1,4 +1,5 @@
 const { Client } = require('pg');
+const pool = require('./db');
 
 // Create a new client instance
 const client = new Client({
@@ -29,6 +30,11 @@ const testDbConnection = async () => {
     console.error('Error connecting to the database:', err.stack);
   }
 };
+
+const testDbConnection2 = async () => {
+  const result = await pool.query('SELECT * FROM rooms WHERE capacity <= 100');
+  console.log(result);
+}
 
 // Run the function
 testDbConnection();
