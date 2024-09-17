@@ -38,3 +38,4 @@ const testDbConnection2 = async () => {
 
 // Run the function
 testDbConnection();
+testDbConnection2();
