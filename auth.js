@@ -52,7 +52,8 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
   (req, res) => {
 
     req.session.token = req.user.token;
-    console.log('==============\n', req.user)
+    console.log('=======get /auth/google/callback=======\n', req.user);
+    console.log('=======get /auth/google/callback=======\n', req.session.token);
     res.redirect(CLIENT_URL + '/'); // Redirect to React router's home page on success
   });
 
@@ -88,6 +89,7 @@ router.get('/logout', (req, res) => {
 });
 
 router.get('/auth/user', (req, res) => {
+  console.log('=======get /auth/user=======\n', req.session.token);
   if (req.isAuthenticated()) {
     console.log("Authenticated")
     res.json({ user: req.user.profile }); // Send user info to frontend if authenticated
