@@ -26,10 +26,16 @@ const corsOptions = {
 
 app.use(session({
   secret: 'your-secret',
-  resave: false, // don't save session if unmodified
-  saveUninitialized: false, // don't create session until something is stored
-  cookie: { secure: false } // if you're using HTTPS, set this to true
+  resave: false,  // Don't save session if unmodified
+  saveUninitialized: false, // Don't create session until something is stored
+  cookie: {
+    secure: true, // This should be true if you're using HTTPS
+    httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript
+    sameSite: 'none', // This is important for cross-origin requests
+    maxAge: 1000 * 60 * 60 * 24 // Set cookie expiration (optional, e.g., 24 hours)
+  }
 }));
+
 
 
 app.use(cors(corsOptions));
