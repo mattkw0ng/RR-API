@@ -1,7 +1,7 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
-const RedisStore = require('connect-redis')(session);
+const RedisStore = require('connect-redis').default;
 const redisClient = require('redis').createClient();
 const fs = require('fs');
 
@@ -12,6 +12,7 @@ const fs = require('fs');
 function initializePassport(app) {
     const credentials = JSON.parse(fs.readFileSync('./credentials.json', 'utf-8'));
     const { client_secret, client_id, callback_url } = credentials.passport;
+    redisClient.connect().catch(console.error);
 
     app.use(session({
         store: new RedisStore({ client: redisClient}),
