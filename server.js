@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 const initializePassport = require('./passportConfig');
-var session = require('express-session')
 
 // Import routes
 const authRoutes = require('./auth');
@@ -23,19 +22,6 @@ const corsOptions = {
   origin: CLIENT_URL, // Set to the origin of frontend
   credentials: true, // Allow credentials (cookies, authentication headers)
 };
-
-app.use(session({
-  secret: 'your-secret',
-  resave: false,  // Don't save session if unmodified
-  saveUninitialized: false, // Don't create session until something is stored
-  cookie: {
-    secure: true, // This should be true if you're using HTTPS
-    httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript
-    sameSite: 'none', // This is important for cross-origin requests
-    maxAge: 1000 * 60 * 60 * 24 // Set cookie expiration (optional, e.g., 24 hours)
-  }
-}));
-
 
 
 app.use(cors(corsOptions));
