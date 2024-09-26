@@ -23,11 +23,25 @@ const corsOptions = {
   credentials: true, // Allow credentials (cookies, authentication headers)
 };
 
+app.use(session({
+  secret: 'your-secret',
+  resave: false, // don't save session if unmodified
+  saveUninitialized: false, // don't create session until something is stored
+  cookie: { secure: false } // if you're using HTTPS, set this to true
+}));
+
+
 app.use(cors(corsOptions));
 
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 const TOKEN_PATH = path.join(__dirname, 'token.json');
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
+
+// Session info logging
+app.use((req, res, next) => {
+  console.log('Session at the start of request:', req.session);
+  next();
+});
 
 // Get Access Token from Google
 async function getAccessToken(oAuth2Client) {

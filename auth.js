@@ -50,10 +50,11 @@ router.get('/auth/google',
 
 router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: CLIENT_URL + '/login' }), // Redirect to React router's login page on failure
   (req, res) => {
-
+    console.log('=======get /auth/google/callback======= session before\n', req.session)
     req.session.token = req.user.token;
-    console.log('=======get /auth/google/callback=======\n', req.user);
-    console.log('=======get /auth/google/callback=======\n', req.session.token);
+    req.session.user = req.user;
+    console.log('=======get /auth/google/callback======= req.user \n', req.user);
+    console.log('=======get /auth/google/callback======= session after\n', req.session);
     res.redirect(CLIENT_URL + '/'); // Redirect to React router's home page on success
   });
 
