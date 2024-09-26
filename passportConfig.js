@@ -2,7 +2,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 const RedisStore = require('connect-redis').default;
-const redisClient = require('redis').createClient();
+const { createClient } = require('redis');
 const fs = require('fs');
 
 /**
@@ -12,9 +12,14 @@ const fs = require('fs');
 function initializePassport(app) {
     const credentials = JSON.parse(fs.readFileSync('./credentials.json', 'utf-8'));
     const { client_secret, client_id, callback_url } = credentials.passport;
+    const redisClient = createClient({
+        legacyMode: true, // If you're using older Redis methods, enable legacy mode
+        url: 'redis://localhost:6379' // Replace with your Redis URL if it's different
+    });
+    redisClient.connect().catch(console.error);
 
     app.use(session({
-        store: new RedisStore({ client: redisClient}),
+        store: new RedisStore({ client: redisClient }),
         secret: 'SuperSecretSecret',
         resave: false,
         saveUninitialized: true,
