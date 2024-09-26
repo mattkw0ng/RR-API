@@ -102,6 +102,7 @@ router.get('/auth/user', (req, res) => {
 // Dummy Login function for testing session storage
 router.post('/auth/login', (req, res) => {
   const { start } = req.body
+  console.log(req.body);
   req.session.user = {test: "testingSessionStorage", time: start};
   req.session.save((err) => {
     if (err) {
