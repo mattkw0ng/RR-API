@@ -99,6 +99,17 @@ router.get('/auth/user', (req, res) => {
   }
 });
 
+router.post('/auth/login', (req, res) => {
+  req.session.user = {test: "testingSessionStorage"};
+  req.session.save((err) => {
+    if (err) {
+      console.error('Session save error', err);
+    } 
+    console.log("Session data: ", req.session);
+    res.send({message: "Logged in"});
+  })
+})
+
 
 router.get('/', (req, res) => {
   res.send(req.isAuthenticated() ? `Hello, ${req.user.displayName}` : 'Not logged in');
