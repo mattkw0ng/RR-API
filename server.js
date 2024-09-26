@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 const initializePassport = require('./passportConfig');
+var session = require('express-session')
 
 // Import routes
 const authRoutes = require('./auth');
