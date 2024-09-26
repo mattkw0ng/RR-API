@@ -13,7 +13,6 @@ function initializePassport(app) {
     const credentials = JSON.parse(fs.readFileSync('./credentials.json', 'utf-8'));
     const { client_secret, client_id, callback_url } = credentials.passport;
     const redisClient = createClient({
-        legacyMode: true, // If you're using older Redis methods, enable legacy mode
         url: 'redis://localhost:6379' // Replace with your Redis URL if it's different
     });
     redisClient.connect().catch(console.error);
