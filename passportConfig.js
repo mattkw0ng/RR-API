@@ -3,7 +3,10 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 const fs = require('fs');
 
-
+/**
+ * Initialize passport (google account login system)
+ * @param {*} app 
+ */
 function initializePassport(app) {
     const credentials = JSON.parse(fs.readFileSync('./credentials.json', 'utf-8'));
     const { client_secret, client_id, callback_url } = credentials.passport;

@@ -1,3 +1,7 @@
+/**
+ * OLD TEST FILE FOR AUTHORIZING GOOGLE CALENDAR ACCOUNT
+ * (see server.js for current implementation)
+ */
 const { google } = require('googleapis');
 const fs = require('fs');
 const readline = require('readline');

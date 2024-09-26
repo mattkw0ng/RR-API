@@ -89,7 +89,7 @@ router.get('/logout', (req, res) => {
 });
 
 router.get('/auth/user', (req, res) => {
-  console.log('=======get /auth/user=======\n', req.session.token);
+  console.log('=======get /auth/user=======\n', req.session);
   if (req.isAuthenticated()) {
     console.log("Authenticated")
     res.json({ user: req.user.profile }); // Send user info to frontend if authenticated
