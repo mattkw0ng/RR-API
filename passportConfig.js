@@ -1,6 +1,8 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
+const RedisStore = require('connect-redis')(session);
+const redisClient = require('redis').createClient();
 const fs = require('fs');
 
 /**
@@ -12,6 +14,7 @@ function initializePassport(app) {
     const { client_secret, client_id, callback_url } = credentials.passport;
 
     app.use(session({
+        store: new RedisStore({ client: redisClient}),
         secret: 'SuperSecretSecret',
         resave: false,
         saveUninitialized: true,
