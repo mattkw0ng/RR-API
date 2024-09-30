@@ -108,7 +108,7 @@ router.post('/auth/login', (req, res) => {
     if (err) {
       console.error('Session save error', err);
     } 
-    console.log("Session data: ", req.session);
+    console.log("Session data: ", req.sessionID, req.session);
     res.send({message: "Logged in"});
   })
 })
