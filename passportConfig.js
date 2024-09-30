@@ -21,7 +21,7 @@ function initializePassport(app) {
         store: new RedisStore({ client: redisClient }),
         secret: 'SuperSecretSecret',
         resave: false,
-        saveUninitialized: true,
+        saveUninitialized: false,
         cookie: {
             secure: true, // This should be true if you're using HTTPS
             httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript

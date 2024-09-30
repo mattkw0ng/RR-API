@@ -32,7 +32,7 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
 // Session info logging
 app.use((req, res, next) => {
-  console.log('Session at the start of request:', req.session);
+  console.log('Session at the start of request:', req.sessionID, req.session);
   next();
 });
 
