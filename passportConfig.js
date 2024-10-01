@@ -16,7 +16,8 @@ function initializePassport(app) {
         url: 'redis://localhost:6379' // Replace with your Redis URL if it's different
     });
     redisClient.connect().catch(console.error);
-
+    app.enable("trust proxy");
+    app.enable("trust proxy", 1);
     app.use(session({
         store: new RedisStore({ client: redisClient }),
         secret: 'SuperSecretSecret',
@@ -31,7 +32,6 @@ function initializePassport(app) {
             maxAge: 1000 * 60 * 60 * 24 // Set cookie expiration (optional, e.g., 24 hours)
         }
     }));
-    app.enable("trust proxy");
     app.use(passport.initialize());
     app.use(passport.session());
 
