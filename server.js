@@ -11,13 +11,15 @@ const authRoutes = require('./auth');
 const eventRoutes = require('./events');
 const roomsRoutes = require('./rooms');
 const { CLIENT_URL } = require('./config');
-
-// Initialize app w/ CORS & Passport
-const app = express();
 const corsOptions = {
   origin: CLIENT_URL, // Set to the origin of frontend
   credentials: true, // Allow credentials (cookies, authentication headers)
 };
+
+
+// Initialize app w/ CORS & Passport
+const app = express();
+app.enable("trust proxy", 1);
 app.use(cors(corsOptions));
 initializePassport(app);
 const PORT = 5000;

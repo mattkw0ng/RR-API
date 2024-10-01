@@ -16,14 +16,12 @@ function initializePassport(app) {
         url: 'redis://localhost:6379' // Replace with your Redis URL if it's different
     });
     redisClient.connect().catch(console.error);
-    app.enable("trust proxy", 1);
     app.use(session({
         store: new RedisStore({ client: redisClient }),
         secret: 'SuperSecretSecret3',
         resave: false,
         saveUninitialized: false,
         cookie: {
-            domain: '.sjcactest.com',
             secure: true, // This should be true if you're using HTTPS
             httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript
             sameSite: 'none', // This is important for cross-origin requests
