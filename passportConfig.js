@@ -22,7 +22,6 @@ function initializePassport(app) {
         secret: 'SuperSecretSecret',
         resave: false,
         saveUninitialized: false,
-        proxy: true,
         cookie: {
             secure: true, // This should be true if you're using HTTPS
             httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript
@@ -30,6 +29,7 @@ function initializePassport(app) {
             maxAge: 1000 * 60 * 60 * 24 // Set cookie expiration (optional, e.g., 24 hours)
         }
     }));
+    app.enable("trust proxy");
     app.use(passport.initialize());
     app.use(passport.session());
 
