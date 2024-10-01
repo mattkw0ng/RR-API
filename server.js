@@ -12,19 +12,17 @@ const eventRoutes = require('./events');
 const roomsRoutes = require('./rooms');
 const { CLIENT_URL } = require('./config');
 
-// Initialize app & Passport
+// Initialize app w/ CORS & Passport
 const app = express();
-initializePassport(app);
-const PORT = 5000;
-
-app.use(bodyParser.json());
 const corsOptions = {
   origin: CLIENT_URL, // Set to the origin of frontend
   credentials: true, // Allow credentials (cookies, authentication headers)
 };
-
-
 app.use(cors(corsOptions));
+initializePassport(app);
+const PORT = 5000;
+
+app.use(bodyParser.json());
 
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 const TOKEN_PATH = path.join(__dirname, 'token.json');
