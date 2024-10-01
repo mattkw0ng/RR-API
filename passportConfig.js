@@ -16,7 +16,7 @@ function initializePassport(app) {
         url: 'redis://localhost:6379' // Replace with your Redis URL if it's different
     });
     redisClient.connect().catch(console.error);
-    app.set("trust proxy", 1);
+    app.enable("trust proxy", 1);
     app.use(session({
         store: new RedisStore({ client: redisClient }),
         secret: 'SuperSecretSecret3',
