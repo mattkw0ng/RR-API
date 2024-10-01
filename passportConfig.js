@@ -22,6 +22,8 @@ function initializePassport(app) {
         secret: 'SuperSecretSecret',
         resave: false,
         saveUninitialized: false,
+        proxy: true,
+        name: "PleaseWork",
         cookie: {
             secure: true, // This should be true if you're using HTTPS
             httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript
