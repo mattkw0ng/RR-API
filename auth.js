@@ -50,11 +50,11 @@ router.get('/auth/google',
 
 router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: CLIENT_URL + '/login' }), // Redirect to React router's login page on failure
   (req, res) => {
-    console.log('=======get /auth/google/callback======= session before\n', req.session)
+    console.log('=======get /auth/google/callback======= session before\n', req.sessionID, req.session)
     req.session.token = req.user.token; // probably unncessary
     req.session.user = req.user;
     // console.log('=======get /auth/google/callback======= req.user \n', req.user);
-    console.log('=======get /auth/google/callback======= session after\n', req.session);
+    console.log('=======get /auth/google/callback======= session after\n', req.sessionID, req.session);
     res.redirect(CLIENT_URL + '/profile'); // Redirect to React router's home page on success
   });
 
@@ -95,6 +95,7 @@ router.get('/auth/user', (req, res) => {
     console.log("Authenticated")
     res.json({ user: req.user.profile }); // Send user info to frontend if authenticated
   } else {
+    console.log("Not Authenticated")
     res.status(401).json({ error: 'Not authenticated' }); // Send error if not authenticated
   }
 });
