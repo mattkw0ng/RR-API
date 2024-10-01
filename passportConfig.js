@@ -19,11 +19,9 @@ function initializePassport(app) {
     app.set("trust proxy", 1);
     app.use(session({
         store: new RedisStore({ client: redisClient }),
-        secret: 'SuperSecretSecret',
+        secret: 'SuperSecretSecret3',
         resave: false,
         saveUninitialized: false,
-        proxy: true,
-        name: "PleaseWork",
         cookie: {
             secure: true, // This should be true if you're using HTTPS
             httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript
