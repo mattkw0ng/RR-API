@@ -5,22 +5,47 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 const initializePassport = require('./passportConfig');
+const session = require('express-session');
+const RedisStore = require('connect-redis').default;
+const { createClient } = require('redis');
 
 // Import routes
 const authRoutes = require('./auth');
 const eventRoutes = require('./events');
 const roomsRoutes = require('./rooms');
 const { CLIENT_URL } = require('./config');
+
+// CORS config
 const corsOptions = {
   origin: CLIENT_URL, // Set to the origin of frontend
   credentials: true, // Allow credentials (cookies, authentication headers)
 };
 
+// Initialize Redis
+const redisClient = createClient({
+  url: 'redis://localhost:6379' // Replace with your Redis URL if it's different
+});
+redisClient.connect().catch(console.error);
 
-// Initialize app w/ CORS & Passport
+// Initialize APP w/ CORS & Passport
 const app = express();
-app.enable("trust proxy", 1);
+app.enable("trust proxy");
+app.set("trust proxy", 1);
 app.use(cors(corsOptions));
+app.use(session({
+  store: new RedisStore({ client: redisClient }),
+  secret: 'SuperSecretSecret3',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+      secure: true, // This should be true if you're using HTTPS
+      httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript
+      sameSite: 'none', // This is important for cross-origin requests
+      maxAge: 1000 * 60 * 60 * 24, // Set cookie expiration (optional, e.g., 24 hours)
+      partitioned: true,
+  }
+}));
+
 initializePassport(app);
 const PORT = 5000;
 
