@@ -38,6 +38,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
+      secure: true, // This should be true if you're using HTTPS
       sameSite: 'none', // This is important for cross-origin requests
       maxAge: 1000 * 60 * 60 * 24, // Set cookie expiration (optional, e.g., 24 hours)
   }
