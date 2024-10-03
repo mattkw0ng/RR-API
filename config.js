@@ -1,3 +1,3 @@
-const CLIENT_URL = "https://main--sensational-quokka-8e0ee2.netlify.app";
+const CLIENT_URL = "http://localhost:3000";
 
 module.exports = {CLIENT_URL};
