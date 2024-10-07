@@ -29,7 +29,6 @@ redisClient.connect().catch(console.error);
 
 // Initialize APP w/ CORS & Passport
 const app = express();
-app.enable("trust proxy");
 app.set("trust proxy", 1);
 app.use(cors(corsOptions));
 app.use(session({
@@ -44,14 +43,6 @@ app.use(session({
       maxAge: 1000 * 60 * 60 * 24, // Set cookie expiration (optional, e.g., 24 hours)
   }
 }));
-
-app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Credentials", true);
-  res.header("Access-Control-Allow-Headers",
-  "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-HTTP-Method-Override, Set-Cookie, Cookie");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-  next();  
-});
 
 initializePassport(app);
 const PORT = 5000;
@@ -110,6 +101,22 @@ app.use('/api', eventRoutes);
 app.use('/api', roomsRoutes)
 
 
+app.get('/set-cookie', (req, res) => {
+  // Manually setting a cookie with specific options
+  res.cookie('testCookie', 'testValue', {
+    httpOnly: true, // Only accessible by the web server
+    secure: true,   // Ensure the browser only sends the cookie over HTTPS
+    sameSite: 'none', // Allow cross-site requests
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+  });
+  res.send('Cookie has been set');
+});
+
+app.get('/get-cookie', (req, res) => {
+  // Checking if the cookie was set
+  const cookie = req.cookies.testCookie;
+  res.send(`Cookie received: ${cookie}`);
+});
 
 
 app.listen(PORT, () => {
