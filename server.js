@@ -55,7 +55,27 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
 // Session info logging
 app.use((req, res, next) => {
-  console.log('Session at the start of request:', req.sessionID, req.session);
+  console.log('===== NEW INCOMING REQUEST =====')
+  // Log the session ID
+  console.log('Session ID:', req.sessionID);
+
+  // Log the request method (GET, POST, etc.)
+  console.log('Request Method:', req.method);
+
+  // Log the request URL
+  console.log('Request URL:', req.originalUrl);
+
+  // Log the cookies sent with the request
+  console.log('Cookies:', req.cookies);
+
+  // Log the session data, if any
+  console.log('Session Data:', req.session);
+
+  // Log any request body data (only if it's a POST/PUT request with body)
+  if (req.method === 'POST' || req.method === 'PUT') {
+    console.log('Request Body:', req.body);
+  }
+
   next();
 });
 
