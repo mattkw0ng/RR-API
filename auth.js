@@ -98,8 +98,8 @@ router.get('/set-cookie', (req, res) => {
   // Manually setting a cookie with specific options
   res.cookie('testCookie', 'testValue', {
     httpOnly: true, // Only accessible by the web server
-    secure: true,   // Ensure the browser only sends the cookie over HTTPS
-    sameSite: 'none', // Allow cross-site requests
+    secure: false,   // Ensure the browser only sends the cookie over HTTPS
+    // sameSite: 'none', // Allow cross-site requests
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
   });
   res.send('Cookie has been set');
