@@ -107,7 +107,7 @@ router.get('/set-cookie', (req, res) => {
 
 router.get('/get-cookie', (req, res) => {
   // Checking if the cookie was set
-  const cookie = req.cookies.testCookie;
+  const cookie = req.cookies;
   res.send(`Cookie received: ${cookie}`);
 });
 
