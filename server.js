@@ -101,24 +101,6 @@ app.use('/api', eventRoutes);
 app.use('/api', roomsRoutes)
 
 
-app.get('/set-cookie', (req, res) => {
-  // Manually setting a cookie with specific options
-  res.cookie('testCookie', 'testValue', {
-    httpOnly: true, // Only accessible by the web server
-    secure: true,   // Ensure the browser only sends the cookie over HTTPS
-    sameSite: 'none', // Allow cross-site requests
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-  });
-  res.send('Cookie has been set');
-});
-
-app.get('/get-cookie', (req, res) => {
-  // Checking if the cookie was set
-  const cookie = req.cookies.testCookie;
-  res.send(`Cookie received: ${cookie}`);
-});
-
-
 app.listen(PORT, () => {
   authorize();
   console.log(`\nServer running on http://3.20.203.208:${PORT}`);

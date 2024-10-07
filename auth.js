@@ -8,37 +8,37 @@ const { CLIENT_URL } = require('./config');
 
 async function authorizeUser(email) {
   const result = await pool.query('SELECT access_token, refresh_token, token_expiry FROM users WHERE email = $1', [email]);
-  
+
   if (result.rows.length > 0) {
-      const { access_token, refresh_token, token_expiry } = result.rows[0];
-      const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
-      
-      oAuth2Client.setCredentials({
-          access_token,
-          refresh_token,
-          expiry_date: token_expiry,
-      });
-      
-      // Check if the access token is expired
-      if (Date.now() > token_expiry) {
-          try {
-              const newTokens = await oAuth2Client.refreshAccessToken();
-              const { access_token, expiry_date } = newTokens.credentials;
+    const { access_token, refresh_token, token_expiry } = result.rows[0];
+    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
 
-              // Update the tokens in the database
-              await pool.query(
-                  `UPDATE users SET access_token = $1, token_expiry = $2 WHERE email = $3`,
-                  [access_token, expiry_date, email]
-              );
-          } catch (error) {
-              console.error('Error refreshing access token:', error);
-          }
+    oAuth2Client.setCredentials({
+      access_token,
+      refresh_token,
+      expiry_date: token_expiry,
+    });
+
+    // Check if the access token is expired
+    if (Date.now() > token_expiry) {
+      try {
+        const newTokens = await oAuth2Client.refreshAccessToken();
+        const { access_token, expiry_date } = newTokens.credentials;
+
+        // Update the tokens in the database
+        await pool.query(
+          `UPDATE users SET access_token = $1, token_expiry = $2 WHERE email = $3`,
+          [access_token, expiry_date, email]
+        );
+      } catch (error) {
+        console.error('Error refreshing access token:', error);
       }
+    }
 
-      return oAuth2Client;
+    return oAuth2Client;
   } else {
-      // No tokens found, user needs to authenticate
-      return null;
+    // No tokens found, user needs to authenticate
+    return null;
   }
 }
 
@@ -61,10 +61,10 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
 // router.post('/auth/google/callback', async (req, res) => {
 //   const { code } = req.query;
 //   const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
-  
+
 //   const { tokens } = await oAuth2Client.getToken(code);
 //   oAuth2Client.setCredentials(tokens);
-  
+
 //   const { access_token, refresh_token, expiry_date } = tokens;
 
 //   // Save tokens to the database
@@ -76,7 +76,7 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
 //        DO UPDATE SET access_token = $2, refresh_token = $3, token_expiry = $4`,
 //       [userEmail, access_token, refresh_token, expiry_date]
 //   );
-  
+
 //   res.redirect('/profile'); // Redirect to your app's home page after successful login
 // });
 
@@ -87,6 +87,23 @@ router.get('/logout', (req, res) => {
     }
     res.redirect(CLIENT_URL + '/login'); // Redirect to React router's login page on logout
   });
+});
+
+router.get('/set-cookie', (req, res) => {
+  // Manually setting a cookie with specific options
+  res.cookie('testCookie', 'testValue', {
+    httpOnly: true, // Only accessible by the web server
+    secure: true,   // Ensure the browser only sends the cookie over HTTPS
+    sameSite: 'none', // Allow cross-site requests
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+  });
+  res.send('Cookie has been set');
+});
+
+router.get('/get-cookie', (req, res) => {
+  // Checking if the cookie was set
+  const cookie = req.cookies.testCookie;
+  res.send(`Cookie received: ${cookie}`);
 });
 
 router.get('/auth/user', (req, res) => {
@@ -103,14 +120,14 @@ router.get('/auth/user', (req, res) => {
 // Dummy Login function for testing session storage
 router.post('/auth/login', (req, res) => {
 
-  req.session.user = {id: 1, username: 'testUser', email: "mattkwong52@gmail.com"};
+  req.session.user = { id: 1, username: 'testUser', email: "mattkwong52@gmail.com" };
 
   req.session.save((err) => {
     if (err) {
       console.error('Session save error', err);
-    } 
+    }
     console.log("Session data: ", req.sessionID, req.session);
-    res.send({message: "Logged in"});
+    res.send({ message: "Logged in" });
   })
 })
 
