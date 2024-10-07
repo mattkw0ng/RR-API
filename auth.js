@@ -89,6 +89,11 @@ router.get('/logout', (req, res) => {
   });
 });
 
+router.get('/test', (req, res) => {
+  console.log(req.header);
+  res.send("Hello world")
+})
+
 router.get('/set-cookie', (req, res) => {
   // Manually setting a cookie with specific options
   res.cookie('testCookie', 'testValue', {
