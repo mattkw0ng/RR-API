@@ -120,6 +120,14 @@ app.use('/', authRoutes);
 app.use('/api', eventRoutes);
 app.use('/api', roomsRoutes)
 
+app.use((req, res, next) => {
+  // Listen to 'finish' event to log response headers
+  res.on('finish', () => {
+    console.log(`Request to ${req.method} ${req.url} - Response headers:`, res.getHeaders());
+  });
+  
+  next();
+});
 
 app.listen(PORT, () => {
   authorize();
