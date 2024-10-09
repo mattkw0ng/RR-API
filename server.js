@@ -32,6 +32,7 @@ redisClient.connect().catch(console.error);
 const app = express();
 app.set("trust proxy", 1);
 app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(session({
   store: new RedisStore({ client: redisClient }),
   secret: 'SuperSecretSecret3',
@@ -44,7 +45,7 @@ app.use(session({
       maxAge: 1000 * 60 * 60 * 24, // Set cookie expiration (optional, e.g., 24 hours)
   }
 }));
-app.use(cookieParser());
+
 
 initializePassport(app);
 const PORT = 5000;
