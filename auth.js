@@ -102,12 +102,16 @@ router.get('/set-cookie', (req, res) => {
     sameSite: 'none', // Allow cross-site requests
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
   });
+  res.on('finish', () => {
+    console.log(`XX= Request to ${req.method} ${req.url} - Response headers:`, res.getHeaders());
+  });
   res.send('Cookie has been set');
 });
 
 router.get('/get-cookie', (req, res) => {
   // Checking if the cookie was set
   const cookie = req.cookies;
+  console.log(req.cookies)
   res.send(`Cookie received: ${cookie}`);
 });
 
@@ -132,6 +136,9 @@ router.post('/auth/login', (req, res) => {
       console.error('Session save error', err);
     }
     console.log("Session data: ", req.sessionID, req.session);
+    res.on('finish', () => {
+      console.log(`XX= Request to ${req.method} ${req.url} - Response headers:`, res.getHeaders());
+    });
     res.send({ message: "Logged in" });
   })
 })

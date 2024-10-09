@@ -8,6 +8,7 @@ const initializePassport = require('./passportConfig');
 const session = require('express-session');
 const RedisStore = require('connect-redis').default;
 const { createClient } = require('redis');
+const cookieParser = require('cookie-parser')
 
 // Import routes
 const authRoutes = require('./auth');
@@ -43,6 +44,7 @@ app.use(session({
       maxAge: 1000 * 60 * 60 * 24, // Set cookie expiration (optional, e.g., 24 hours)
   }
 }));
+app.use(cookieParser());
 
 initializePassport(app);
 const PORT = 5000;
@@ -119,15 +121,6 @@ async function authorize() {
 app.use('/', authRoutes);
 app.use('/api', eventRoutes);
 app.use('/api', roomsRoutes)
-
-app.use((req, res, next) => {
-  // Listen to 'finish' event to log response headers
-  res.on('finish', () => {
-    console.log(`Request to ${req.method} ${req.url} - Response headers:`, res.getHeaders());
-  });
-  
-  next();
-});
 
 app.listen(PORT, () => {
   authorize();
