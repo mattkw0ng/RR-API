@@ -33,7 +33,6 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(cors(corsOptions));
 app.use(cookieParser());
-initializePassport(app);
 app.use(session({
   store: new RedisStore({ client: redisClient }),
   secret: 'SuperSecretSecret3',
@@ -47,6 +46,7 @@ app.use(session({
   }
 }));
 
+initializePassport(app);
 const PORT = 5000;
 
 app.use(bodyParser.json());
