@@ -68,15 +68,15 @@ app.use((req, res, next) => {
   console.log('Request URL:', req.originalUrl);
 
   // Log the cookies sent with the request
-  console.log('Cookies:', req.cookies);
+  // console.log('Cookies:', req.cookies);
 
   // Log the session data, if any
-  console.log('Session Data:', req.session);
+  // console.log('Session Data:', req.session);
 
   // Log any request body data (only if it's a POST/PUT request with body)
-  if (req.method === 'POST' || req.method === 'PUT') {
-    console.log('Request Body:', req.body);
-  }
+  // if (req.method === 'POST' || req.method === 'PUT') {
+  //   console.log('Request Body:', req.body);
+  // }
 
   next();
 });
