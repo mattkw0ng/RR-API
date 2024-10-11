@@ -102,7 +102,6 @@ router.get('/userEvents', async (req, res) => {
       timeMin: now.toISOString(),
       singleEvents: true,
       orderBy: 'startTime',
-      maxResults, // Limit to 5 events
       q: userEmail, // Search by user email in attendees
     });
 
