@@ -87,7 +87,7 @@ async function getUserEvents(userEmail, maxResults = 5) {
 // Usage example in your route
 router.get('/userEvents', async (req, res) => {
   try {
-    const userEmail = req.session.user.email; // Assuming you store the user's email in session
+    const userEmail = req.session.user.profile.emails[0]; // Assuming you store the user's email in session
     console.log("++ /userEvents userEmail:", userEmail)
     // const events = await getUserEvents(userEmail);
 
