@@ -89,6 +89,7 @@ router.get('/userEvents', async (req, res) => {
   try {
     const userEmail = req.session.user.email; // Assuming you store the user's email in session
     const events = await getUserEvents(userEmail);
+    console.log("++ /userEvents", events);
     res.status(200).json(events);
   } catch (error) {
     res.status(500).send(error.message);
