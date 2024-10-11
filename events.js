@@ -98,7 +98,7 @@ router.get('/userEvents', async (req, res) => {
     const now = new Date();
 
     const response = await calendar.events.list({
-      calendarId: 'primary', // or your specific calendar ID
+      calendarId: PENDING_APPROVAL_CALENDAR_ID, // or your specific calendar ID
       timeMin: now.toISOString(),
       singleEvents: true,
       orderBy: 'startTime',
@@ -106,6 +106,7 @@ router.get('/userEvents', async (req, res) => {
       q: userEmail, // Search by user email in attendees
     });
 
+    console.log('++ /userEvents response', response)
     // Filter the events by matching the user's email in the attendees
     const events = response.data.items.filter(event =>
       event.attendees && event.attendees.some(attendee => attendee.email === userEmail)
