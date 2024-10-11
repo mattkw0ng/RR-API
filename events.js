@@ -88,8 +88,30 @@ async function getUserEvents(userEmail, maxResults = 5) {
 router.get('/userEvents', async (req, res) => {
   try {
     const userEmail = req.session.user.email; // Assuming you store the user's email in session
-    const events = await getUserEvents(userEmail);
-    console.log("++ /userEvents", events);
+    console.log("++ /userEvents userEmail:", userEmail)
+    // const events = await getUserEvents(userEmail);
+
+
+    const auth = await authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    const now = new Date();
+
+    const response = await calendar.events.list({
+      calendarId: 'primary', // or your specific calendar ID
+      timeMin: now.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults, // Limit to 5 events
+      q: userEmail, // Search by user email in attendees
+    });
+
+    // Filter the events by matching the user's email in the attendees
+    const events = response.data.items.filter(event =>
+      event.attendees && event.attendees.some(attendee => attendee.email === userEmail)
+    );
+
+    console.log("++ /userEvents events:", events);
     res.status(200).json(events);
   } catch (error) {
     res.status(500).send(error.message);
