@@ -56,6 +56,45 @@ async function authorize() {
   return oAuth2Client;
 }
 
+async function getUserEvents(userEmail, maxResults = 5) {
+  try {
+    const auth = await authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    const now = new Date();
+
+    const response = await calendar.events.list({
+      calendarId: 'primary', // or your specific calendar ID
+      timeMin: now.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults, // Limit to 5 events
+      q: userEmail, // Search by user email in attendees
+    });
+
+    // Filter the events by matching the user's email in the attendees
+    const events = response.data.items.filter(event =>
+      event.attendees && event.attendees.some(attendee => attendee.email === userEmail)
+    );
+
+    return events;
+  } catch (error) {
+    console.error('Error fetching user events:', error.message);
+    throw new Error('Error fetching user events: ' + error.message);
+  }
+};
+
+// Usage example in your route
+router.get('/userEvents', async (req, res) => {
+  try {
+    const userEmail = req.session.user.email; // Assuming you store the user's email in session
+    const events = await getUserEvents(userEmail);
+    res.status(200).json(events);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
 // Return the 5 upcoming events within the next week
 router.get('/upcomingEvents', async (req, res) => {
   const auth = await authorize();
@@ -249,6 +288,7 @@ router.get('/checkAvailability', async (req, res) => {
     res.status(500).send('Error checking availability');
   }
 });
+
 
 router.post('/addUserEvent', async (req, res) => {
   if (!req.user) {
