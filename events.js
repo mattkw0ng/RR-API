@@ -76,7 +76,7 @@ async function getUserEvents(userEmail, maxResults = 5) {
     const events = response.data.items.filter(event =>
       event.attendees && event.attendees.some(attendee => attendee.email === userEmail)
     );
-
+    console.log(events);
     return events;
   } catch (error) {
     console.error('Error fetching user events:', error.message);
