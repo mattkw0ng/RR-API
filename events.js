@@ -188,20 +188,27 @@ router.get('/pendingEvents', async (req, res) => {
   }
 });
 
-// Add and event to the "Pending approval" Calendar, with the room added as an "attendee" resource
-router.post('/addEventWithRoom', async (req, res) => {
+router.post('/addEventWithRooms', async (req, res) => {
   console.log("Incoming event request");
-  const { summary, location, description, startDateTime, endDateTime, room, userEmail } = req.body;
+  const { summary, location, description, startDateTime, endDateTime, rooms, userEmail } = req.body;
 
-  if (!summary || !startDateTime || !endDateTime || !room) {
+  if (!summary || !startDateTime || !endDateTime || !rooms || rooms.length === 0) {
     return res.status(400).send('Missing required fields');
   }
 
   try {
-    const roomId = await getCalendarIdByRoom(room);
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
+    // Get the calendar IDs for the rooms (assuming you have a function to fetch them)
+    const roomAttendees = await Promise.all(
+      rooms.map(async (room) => {
+        const roomId = await getCalendarIdByRoom(room);
+        return { email: roomId, resource: true };
+      })
+    );
+
+    // Create the event object
     const event = {
       summary,
       location,
@@ -214,11 +221,9 @@ router.post('/addEventWithRoom', async (req, res) => {
         dateTime: endDateTime,
         timeZone: 'America/Los_Angeles',
       },
-      // This is where the event is also added to the respective Rooms/Resource Calendar (google categorizes this as an attendee)
-      // The calendarID is placed under the email tag, and resource is set to TRUE
       attendees: [
-        { email: roomId, resource: true },
-        { email: userEmail }
+        ...roomAttendees, // Add all the room resources
+        { email: userEmail } // Add the user as an attendee
       ],
       reminders: {
         useDefault: false,
@@ -241,6 +246,7 @@ router.post('/addEventWithRoom', async (req, res) => {
     res.status(500).send('Error adding event: ' + error.message);
   }
 });
+
 
 // Move event from the "Pending approval" Calendar to the "approved" Calendar
 router.post('/approveEvent', async (req, res) => {
