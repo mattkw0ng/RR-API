@@ -230,21 +230,29 @@ router.post('/approveEvent', async (req, res) => {
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
-    // Retrieve the event details from the "Pending approval" calendar
-    const eventResponse = await calendar.events.get({
+    // // Retrieve the event details from the "Pending approval" calendar
+    // const eventResponse = await calendar.events.get({
+    //   calendarId: PENDING_APPROVAL_CALENDAR_ID,
+    //   eventId: eventId,
+    // });
+
+    // const event = eventResponse.data;
+
+    // console.log("++ Approve Events event data:", event);
+
+    // // Insert the event into the "approved" calendar
+    // await calendar.events.insert({
+    //   calendarId: APPROVED_CALENDAR_ID,
+    //   resource: event,
+    // });
+
+    await calendar.events.copy({
       calendarId: PENDING_APPROVAL_CALENDAR_ID,
       eventId: eventId,
-    });
-
-    const event = eventResponse.data;
-
-    console.log("++ Approve Events event data:", event);
-
-    // Insert the event into the "approved" calendar
-    await calendar.events.insert({
-      calendarId: APPROVED_CALENDAR_ID,
-      resource: event,
-    });
+      destination: APPROVED_CALENDAR_ID,
+    }).then((response) => {
+      console.log(response);
+    })
 
     // Delete the event from the "Pending approval" calendar
     await calendar.events.delete({
