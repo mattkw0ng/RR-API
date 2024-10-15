@@ -246,7 +246,7 @@ router.post('/approveEvent', async (req, res) => {
     //   resource: event,
     // });
 
-    await calendar.events.copy({
+    await calendar.events.move({
       calendarId: PENDING_APPROVAL_CALENDAR_ID,
       eventId: eventId,
       destination: APPROVED_CALENDAR_ID,
