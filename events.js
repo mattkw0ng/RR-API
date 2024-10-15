@@ -147,7 +147,7 @@ router.get('/pendingEvents', async (req, res) => {
 
     const response = await calendar.events.list({
       calendarId: PENDING_APPROVAL_CALENDAR_ID, // Replace with your "Pending approval" calendar ID
-      timeMin: now.toISOString(),
+      singleEvents: true,
       orderBy: 'startTime',
     });
 
