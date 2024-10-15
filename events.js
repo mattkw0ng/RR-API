@@ -238,6 +238,8 @@ router.post('/approveEvent', async (req, res) => {
 
     const event = eventResponse.data;
 
+    console.log("++ Approve Events event data:", event);
+
     // Insert the event into the "approved" calendar
     await calendar.events.insert({
       calendarId: APPROVED_CALENDAR_ID,
