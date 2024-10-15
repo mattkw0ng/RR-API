@@ -254,12 +254,7 @@ router.post('/approveEvent', async (req, res) => {
       console.log(response);
     })
 
-    // Delete the event from the "Pending approval" calendar
-    await calendar.events.delete({
-      calendarId: PENDING_APPROVAL_CALENDAR_ID,
-      eventId: eventId,
-    });
-
+    
     res.status(200).send('Event approved');
   } catch (error) {
     console.error('Error approving event:', error);
