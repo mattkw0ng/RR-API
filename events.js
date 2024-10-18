@@ -327,7 +327,7 @@ router.get('/checkAvailability', async (req, res) => {
 
     console.log(combinedList)
 
-    res.json(combinedList);
+    res.json(availableRooms);
   } catch (error) {
     console.error('Error checking availability:', error);
     res.status(500).send('Error checking availability');
