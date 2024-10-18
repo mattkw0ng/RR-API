@@ -52,14 +52,15 @@ function extractRooms(input) {
     return match ? match[1] : null; // match[1] captures the room name
   }).filter(Boolean); // Remove null entries
 
+  // Step 3: Clean up room names by removing anything after a colon
   const cleanedBookedRooms = bookedRooms.map(room => room.split(' :')[0].trim());
 
   console.log(cleanedBookedRooms);
 
-  // Step 3: Find rooms that are NOT in the bookedRooms
-  const availableRooms = Object.keys(ROOM_IDS).filter(room => !cleanedBookedRooms.includes(room));
+  // Step 4: Find rooms that are NOT in the bookedRooms
+  // const availableRooms = Object.keys(ROOM_IDS).filter(room => !cleanedBookedRooms.includes(room));
 
-  return availableRooms;
+  return cleanedBookedRooms;
 };
 
 
@@ -314,6 +315,8 @@ router.get('/checkAvailability', async (req, res) => {
     for (location of locations) {
       bookedLocations.push(extractRooms(location));
     }
+
+    const combinedList = [...new Set(bookedLocations.flat())]; // flatten and remove duplicates
 
     console.log(bookedLocations)
     res.json(['Sanctuary']);
