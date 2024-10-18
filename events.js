@@ -306,20 +306,28 @@ router.get('/checkAvailability', async (req, res) => {
     const pendingConflicts = await listEvents(PENDING_APPROVAL_CALENDAR_ID, auth, startTime, endTime);
 
     console.log(approvedConflicts, pendingConflicts);
+
+    // get list of locations
     const locations = [];
     for (conflict of approvedConflicts) {
       locations.push(conflict.location)
     }
     console.log(locations);
+
+    // get list of booked locations
     const bookedLocations = [];
     for (location of locations) {
       bookedLocations.push(extractRooms(location));
     }
 
-    const combinedList = [...new Set(bookedLocations.flat())]; // flatten and remove duplicates
+    // Flatten and remove duplicates
+    const combinedList = [...new Set(bookedLocations.flat())]; 
+    // Get Available Rooms from combinedList
+    const availableRooms = Object.keys(ROOM_IDS).filter(room => !combinedList.includes(room));
 
-    console.log(bookedLocations)
-    res.json(['Sanctuary']);
+    console.log(combinedList)
+
+    res.json(combinedList);
   } catch (error) {
     console.error('Error checking availability:', error);
     res.status(500).send('Error checking availability');
