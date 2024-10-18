@@ -277,16 +277,11 @@ router.get('/checkAvailability', async (req, res) => {
   const endTime = new Date(endDateTime);
 
   try {
-    const chapelEvents = await listEvents(ROOM_IDS['Chapel'], auth, startTime, endTime);
-    const sanctuaryEvents = await listEvents(ROOM_IDS['Sanctuary'], auth, startTime, endTime);
+    const approvedConflicts = await listEvents(APPROVED_CALENDAR_ID, auth, startTime, endTime);
+    const pendingConflicts = await listEvents(PENDING_APPROVAL_CALENDAR_ID, auth, startTime, endTime);
 
-    const reservedRooms = [];
-    if (chapelEvents.length > 0) reservedRooms.push('Chapel');
-    if (sanctuaryEvents.length > 0) reservedRooms.push('Sanctuary');
-
-    const availableRooms = reservedRooms.length === 0 ? ['Chapel', 'Sanctuary'] : ['Chapel', 'Sanctuary'].filter(room => !reservedRooms.includes(room));
-
-    res.json(availableRooms);
+    console.log(approvedConflicts, pendingConflicts)
+    res.json(['Sanctuary']);
   } catch (error) {
     console.error('Error checking availability:', error);
     res.status(500).send('Error checking availability');
