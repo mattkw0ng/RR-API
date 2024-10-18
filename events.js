@@ -46,7 +46,7 @@ function extractRooms(input) {
   const parts = input.split(',').slice(1).map(item => item.trim());
 
   // Step 2: Use REGEX to extract the room name part and compare
-  const regex = /[A-Z]-\d+-(.*) \(\d+\)/;
+  const regex = /([A-Z][0-9]+(?:\/[0-9]+)?|[A-Z]+(?:\/[0-9]+)?) ?(?: :.*)?/g;
   const bookedRooms = parts.map(part => {
     const match = part.match(regex);
     return match ? match[1] : null; // match[1] captures the room name
