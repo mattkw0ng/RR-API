@@ -41,24 +41,28 @@ async function listEvents(calendarId, auth, startTime, endTime) {
 }
 
 // GET room names from event location: 'San Jose Christian Alliance Church, A-1-Sanctuary (325), A-1-A102 : Youth Wing (15), B-2-Chapel (150)'
-function extractRooms(input) {
-  // Step 1: Split by commas and remove the first part (church name)
-  const parts = input.split(',').slice(1).map(item => item.trim());
-
-  // Step 2: Use REGEX to extract the room name part and compare
+function extractRooms(locationString) {
   const regex = /([A-Z][0-9]+(?:\/[0-9]+)?|[A-Z]+(?:\/[0-9]+)?) ?(?: :.*)?/g;
-  const bookedRooms = parts.map(part => {
-    const match = part.match(regex);
-    return match ? match[1] : null; // match[1] captures the room name
-  }).filter(Boolean); // Remove null entries
+  const matchedRooms = [];
 
-  console.log(bookedRooms);
+  // Split the string by commas to separate each location
+  const locations = locationString.split(', ');
 
-  // Step 3: Find rooms that are NOT in the bookedRooms
-  const availableRooms = Object.keys(ROOM_IDS).filter(room => !bookedRooms.includes(room));
+  locations.forEach(location => {
+    // Match room names based on the pattern (before the colon) and filter them against the list
+    const match = location.match(regex);
+    if (match) {
+      match.forEach(room => {
+        // Check if the extracted room matches a room in the database
+        if (Object.keys(ROOM_IDS).includes(room.trim())) {
+          matchedRooms.push(room.trim());
+        }
+      });
+    }
+  });
 
-  return availableRooms;
-};
+  return matchedRooms;
+}
 
 
 // Authorize {rooms@sjcac.org} account
