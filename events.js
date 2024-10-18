@@ -40,6 +40,26 @@ async function listEvents(calendarId, auth, startTime, endTime) {
   }
 }
 
+// GET room names from event location: 'San Jose Christian Alliance Church, A-1-Sanctuary (325), A-1-A102 : Youth Wing (15), B-2-Chapel (150)'
+function extractRooms(input) {
+  // Step 1: Split by commas and remove the first part (church name)
+  const parts = input.split(',').slice(1).map(item => item.trim());
+
+  // Step 2: Use REGEX to extract the room name part and compare
+  const regex = /[A-Z]-\d+-(.*) \(\d+\)/;
+  const bookedRooms = parts.map(part => {
+    const match = part.match(regex);
+    return match ? match[1] : null; // match[1] captures the room name
+  }).filter(Boolean); // Remove null entries
+
+  console.log(bookedRooms);
+
+  // Step 3: Find rooms that are NOT in the bookedRooms
+  const availableRooms = Object.keys(ROOM_IDS).filter(room => !bookedRooms.includes(room));
+
+  return availableRooms;
+};
+
 
 // Authorize {rooms@sjcac.org} account
 async function authorize() {
@@ -158,6 +178,7 @@ router.get('/pendingEvents', async (req, res) => {
   }
 });
 
+// MAIN ROOM REQUEST FUNCTION
 router.post('/addEventWithRooms', async (req, res) => {
   console.log("Incoming event request");
   const { summary, location, description, startDateTime, endDateTime, rooms, userEmail } = req.body;
@@ -264,6 +285,7 @@ router.post('/approveEvent', async (req, res) => {
 
 
 
+
 // Check what rooms are available at any given time/date
 router.get('/checkAvailability', async (req, res) => {
   const { startDateTime, endDateTime } = req.query;
@@ -280,7 +302,18 @@ router.get('/checkAvailability', async (req, res) => {
     const approvedConflicts = await listEvents(APPROVED_CALENDAR_ID, auth, startTime, endTime);
     const pendingConflicts = await listEvents(PENDING_APPROVAL_CALENDAR_ID, auth, startTime, endTime);
 
-    console.log(approvedConflicts, pendingConflicts)
+    console.log(approvedConflicts, pendingConflicts);
+    const locations = [];
+    for (conflict of approvedConflicts) {
+      locations.push(conflict.location)
+    }
+    console.log(locations);
+    const bookedLocations = [];
+    for (location of locations) {
+      bookedLocations.push(extractRooms(location));
+    }
+
+    console.log(bookedLocations)
     res.json(['Sanctuary']);
   } catch (error) {
     console.error('Error checking availability:', error);
