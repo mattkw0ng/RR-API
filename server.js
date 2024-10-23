@@ -120,7 +120,7 @@ async function authorize() {
 
 app.use('/', authRoutes);
 app.use('/api', eventRoutes);
-app.use('/api', roomsRoutes)
+app.use('/api', roomsRoutes.router)
 
 app.listen(PORT, () => {
   authorize();
