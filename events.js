@@ -65,6 +65,7 @@ function extractRooms(input) {
 };
 
 function combineDateTime(date, time) {
+  console.log(time);
   // Combine the date and time into a single string
   const dateTimeString = `${date} ${time}`;
 
