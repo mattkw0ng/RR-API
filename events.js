@@ -85,7 +85,7 @@ const checkAvailability = async (startDateTime, endDateTime) => {
   if (!startDateTime || !endDateTime) {
     throw new Error('Missing startDateTime or endDateTime');
   }
-  console.log('Times:', startDateTime, endDateTime);
+  console.log('Times:', startDateTime, endDateTime, new Date(startDateTime).toISOString());
 
   const auth = await authorize();
   const startTime = new Date(startDateTime);
@@ -106,9 +106,10 @@ const checkAvailability = async (startDateTime, endDateTime) => {
   // Remove duplicates and flatten the list
   const combinedList = [...new Set(bookedLocations.flat())];
 
+  console.log("combined list", combinedList);
   // Get available rooms by filtering out booked rooms
   const availableRooms = Object.keys(ROOM_IDS).filter(room => !combinedList.includes(room));
-
+  
   return availableRooms;
 };
 
