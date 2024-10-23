@@ -80,6 +80,25 @@ function combineDateTime(date, time) {
   return parsedDateTime;
 }
 
+function combineDateTimeInUTC(date, time) {
+  // Combine the date and time into a string
+  const dateTimeString = `${date} ${time}`;
+  
+  // Parse the local date and time first
+  const localDateTime = new Date(dateTimeString);
+
+  if (isNaN(localDateTime)) {
+    throw new Error('Invalid Date or Time format');
+  }
+
+  console.log("utc converting...", localDateTime.toLocaleTimeString());
+  // Convert the local time to UTC (same behavior as DatePicker)
+  const utcDateTime = new Date(localDateTime.getTime() + (localDateTime.getTimezoneOffset() * 60000));
+  console.log(utcDateTime.toLocaleTimeString());
+  return utcDateTime;
+}
+
+
 
 // Authorize {rooms@sjcac.org} account
 async function authorize() {
@@ -357,8 +376,8 @@ router.get('/checkAvailability', async (req, res) => {
 router.post('/filterRooms', async (req, res) => {
   console.log( "Req body:", req.body );
   const { date, startTime, endTime, capacity, resources } = req.body;
-  const startDateTime = combineDateTime(date, startTime);
-  const endDateTime = combineDateTime(date, endTime);
+  const startDateTime = combineDateTimeInUTC(date, startTime);
+  const endDateTime = combineDateTimeInUTC(date, endTime);
   try {
     const availableRooms = await checkAvailability(startDateTime, endDateTime);
     const matchingRooms = await roomsTools.SearchRoom(capacity, resources);
