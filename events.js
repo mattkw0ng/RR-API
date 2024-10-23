@@ -91,6 +91,7 @@ function combineDateTimeInUTC(date, time) {
     throw new Error('Invalid Date or Time format');
   }
   console.log("CombineDateTimeInUTC")
+  console.log(dateTimeString)
   console.log(localDateTime)
   console.log(localDateTime.toUTCString())
 
