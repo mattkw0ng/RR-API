@@ -91,11 +91,7 @@ function combineDateTimeInUTC(date, time) {
     throw new Error('Invalid Date or Time format');
   }
 
-  console.log("utc converting...", localDateTime.toLocaleTimeString());
-  // Convert the local time to UTC (same behavior as DatePicker)
-  const utcDateTime = new Date(localDateTime.getTime() + (localDateTime.getTimezoneOffset() * 60000));
-  console.log(utcDateTime.toLocaleTimeString());
-  return utcDateTime;
+  return localDateTime.toUTCString();
 }
 
 
