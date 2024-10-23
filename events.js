@@ -90,6 +90,9 @@ function combineDateTimeInUTC(date, time) {
   if (isNaN(localDateTime)) {
     throw new Error('Invalid Date or Time format');
   }
+  console.log("CombineDateTimeInUTC")
+  console.log(localDateTime)
+  console.log(localDateTime.toUTCString())
 
   return localDateTime.toUTCString();
 }
