@@ -19,6 +19,7 @@ async function getCalendarIdByRoom(room) {
 }
 
 async function SearchRoom(capacity, resources) {
+  capacity = capacity ? Number(capacity) : 0;
   const result = await pool.query(
     `SELECT * FROM rooms WHERE capacity >= $1 AND resources @> $2::text[]`,
     [capacity, resources]
