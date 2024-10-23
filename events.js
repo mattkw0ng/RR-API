@@ -351,7 +351,7 @@ router.get('/checkAvailability', async (req, res) => {
 
 // Filter rooms based off of time, capacity, and resources
 router.post('filterRooms', async (req, res) => {
-  const { date, startTime, endTime, capacity, resources } = req.query;
+  const { date, startTime, endTime, capacity, resources } = req.body;
   
   console.log( req.query );
   const startDateTime = combineDateTime(date, startTime);
