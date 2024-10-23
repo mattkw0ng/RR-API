@@ -358,7 +358,7 @@ router.post('/filterRooms', async (req, res) => {
   const endDateTime = combineDateTime(date, endTime);
   try {
     const availableRooms = await checkAvailability(startDateTime, endDateTime);
-    const matchingRooms = await SearchRoom(capacity, resources);
+    const matchingRooms = await roomsTools.SearchRoom(capacity, resources);
     console.log(availableRooms);
     console.log(matchingRooms);
 
