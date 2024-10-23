@@ -64,6 +64,21 @@ function extractRooms(input) {
   return cleanedBookedRooms;
 };
 
+function combineDateTime(date, time) {
+  // Combine the date and time into a single string
+  const dateTimeString = `${date} ${time}`;
+
+  // Use JavaScript's Date object to parse the combined string
+  const parsedDateTime = new Date(dateTimeString);
+
+  // Check if the date is valid
+  if (isNaN(parsedDateTime)) {
+    throw new Error('Invalid Date or Time format');
+  }
+
+  return parsedDateTime;
+}
+
 
 // Authorize {rooms@sjcac.org} account
 async function authorize() {
@@ -322,7 +337,6 @@ router.post('/approveEvent', async (req, res) => {
 
 
 // Check what rooms are available at any given time/date
-// Check what rooms are available at any given time/date
 router.get('/checkAvailability', async (req, res) => {
   const { startDateTime, endDateTime } = req.query;
 
@@ -335,17 +349,24 @@ router.get('/checkAvailability', async (req, res) => {
   }
 });
 
-
-router.get('filterRooms', async (req, res) => {
+// Filter rooms based off of time, capacity, and resources
+router.post('filterRooms', async (req, res) => {
   const { date, startTime, endTime, capacity, resources } = req.query;
   
   console.log( req.query );
-
+  const startDateTime = combineDateTime(date, startTime);
+  const endDateTime = combineDateTime(date, endTime);
   try {
-    // const availableRooms = await checkAvailability(startTime, endTime);
-    const result = await SearchRoom(capacity, resources);
-    console.log(result);
-    res.json(result);
+    const availableRooms = await checkAvailability(startDateTime, endDateTime);
+    const matchingRooms = await SearchRoom(capacity, resources);
+    console.log(availableRooms);
+    console.log(matchingRooms);
+
+    const merged = availableRooms.filter((room) => {
+      return matchingRooms.includes(room);
+    })
+    console.log(merged);
+    res.json(merged);
   } catch (error) {
     console.error('Error filtering rooms:', error.message);
     res.status(400).send(error.message);
