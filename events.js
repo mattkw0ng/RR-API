@@ -107,7 +107,7 @@ const checkAvailability = async (startDateTime, endDateTime) => {
   const startTime = new Date(startDateTime);
   const endTime = new Date(endDateTime);
 
-  console.log('Times converted', startTime.toDateString(), endTime.toDateString())
+  console.log('Times converted', startTime.toLocaleTimeString(), endTime.toLocaleTimeString())
 
   // Get approved and pending event conflicts
   const approvedConflicts = await listEvents(APPROVED_CALENDAR_ID, auth, startTime, endTime);
