@@ -76,7 +76,7 @@ function combineDateTime(date, time) {
     throw new Error('Invalid Date or Time format');
   }
 
-  return Date(parsedDateTime.getTime() - (parsedDateTime.getTimezoneOffset() * 60000));;
+  return parsedDateTime;
 }
 
 
