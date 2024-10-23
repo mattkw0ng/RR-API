@@ -351,19 +351,21 @@ router.get('/checkAvailability', async (req, res) => {
 
 // Filter rooms based off of time, capacity, and resources
 router.post('/filterRooms', async (req, res) => {
-  console.log("Hellooooooooo");
-  console.log( req.body );
+  console.log( "Req body:", req.body );
   const { date, startTime, endTime, capacity, resources } = req.body;
   const startDateTime = combineDateTime(date, startTime);
   const endDateTime = combineDateTime(date, endTime);
   try {
     const availableRooms = await checkAvailability(startDateTime, endDateTime);
     const matchingRooms = await roomsTools.SearchRoom(capacity, resources);
-    console.log(availableRooms);
-    console.log(matchingRooms);
+    console.log("CheckAvailability", availableRooms);
+    console.log("roomsTools.SearchRoom", matchingRooms);
+    const matchingRoomsNames = matchingRooms.map((elem) => {
+      return elem.room_name;
+    })
 
     const merged = availableRooms.filter((room) => {
-      return matchingRooms.includes(room);
+      return matchingRoomsNames.includes(room);
     })
     console.log(merged);
     res.json(merged);

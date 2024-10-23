@@ -24,7 +24,7 @@ async function SearchRoom(capacity, resources) {
     `SELECT * FROM rooms WHERE capacity >= $1 AND resources @> $2::text[]`,
     [capacity, resources]
   );
-  console.log(result);
+  // console.log(result);
   return(result.rows);
 }
 
