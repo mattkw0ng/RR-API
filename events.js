@@ -359,15 +359,15 @@ router.post('/filterRooms', async (req, res) => {
     const availableRooms = await checkAvailability(startDateTime, endDateTime);
     const matchingRooms = await roomsTools.SearchRoom(capacity, resources);
     console.log("CheckAvailability", availableRooms);
-    console.log("roomsTools.SearchRoom", matchingRooms);
+    
     const matchingRoomsNames = matchingRooms.map((elem) => {
       return elem.room_name;
     })
-
+    console.log("roomsTools.SearchRoom => Names", matchingRoomsNames);
     const merged = availableRooms.filter((room) => {
       return matchingRoomsNames.includes(room);
     })
-    console.log(merged);
+    console.log("Res:", merged);
     res.json(merged);
   } catch (error) {
     console.error('Error filtering rooms:', error.message);
