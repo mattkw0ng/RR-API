@@ -101,6 +101,7 @@ const checkAvailability = async (startDateTime, endDateTime) => {
   if (!startDateTime || !endDateTime) {
     throw new Error('Missing startDateTime or endDateTime');
   }
+  console.log('Times:', startDateTime, endDateTime);
 
   const auth = await authorize();
   const startTime = new Date(startDateTime);
