@@ -353,7 +353,7 @@ router.get('/checkAvailability', async (req, res) => {
 router.post('filterRooms', async (req, res) => {
   const { date, startTime, endTime, capacity, resources } = req.body;
   
-  console.log( req.query );
+  console.log( req.body );
   const startDateTime = combineDateTime(date, startTime);
   const endDateTime = combineDateTime(date, endTime);
   try {
