@@ -64,42 +64,6 @@ function extractRooms(input) {
   return cleanedBookedRooms;
 };
 
-function combineDateTime(date, time) {
-  console.log(time);
-  // Combine the date and time into a single string
-  const dateTimeString = `${date} ${time}`;
-
-  // Use JavaScript's Date object to parse the combined string
-  const parsedDateTime = new Date(dateTimeString);
-
-  // Check if the date is valid
-  if (isNaN(parsedDateTime)) {
-    throw new Error('Invalid Date or Time format');
-  }
-
-  return parsedDateTime;
-}
-
-function combineDateTimeInUTC(date, time) {
-  // Combine the date and time into a string
-  const dateTimeString = `${date} ${time}`;
-  
-  // Parse the local date and time first
-  const localDateTime = new Date(dateTimeString);
-
-  if (isNaN(localDateTime)) {
-    throw new Error('Invalid Date or Time format');
-  }
-  console.log("CombineDateTimeInUTC")
-  console.log(dateTimeString)
-  console.log(localDateTime)
-  console.log(localDateTime.toUTCString())
-
-  return localDateTime.toUTCString();
-}
-
-
-
 // Authorize {rooms@sjcac.org} account
 async function authorize() {
   const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
@@ -375,9 +339,8 @@ router.get('/checkAvailability', async (req, res) => {
 // Filter rooms based off of time, capacity, and resources
 router.post('/filterRooms', async (req, res) => {
   console.log( "Req body:", req.body );
-  const { date, startTime, endTime, capacity, resources } = req.body;
-  const startDateTime = combineDateTimeInUTC(date, startTime);
-  const endDateTime = combineDateTimeInUTC(date, endTime);
+  const { date, startDateTime, endDateTime, capacity, resources } = req.body;
+
   try {
     const availableRooms = await checkAvailability(startDateTime, endDateTime);
     const matchingRooms = await roomsTools.SearchRoom(capacity, resources);
