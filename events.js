@@ -3,13 +3,14 @@ const { google } = require('googleapis');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-
+const roomsTools = require('./rooms')
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 const TOKEN_PATH = path.join(__dirname, 'token.json');
 const PENDING_APPROVAL_CALENDAR_ID = "c_0430068aa84472bdb1aa16b35d4061cd867e4888a8ace5fa3d830bb67587dfad@group.calendar.google.com";
 const APPROVED_CALENDAR_ID = 'c_8f9a221bd12882ccda21c5fb81effbad778854cc940c855b25086414babb1079@group.calendar.google.com';
 const ROOM_IDS_PATH = path.join(__dirname, 'room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
+
 
 async function getCalendarIdByRoom(room) {
   // const query = 'SELECT calendar_id FROM rooms WHERE name = $1';
@@ -78,6 +79,37 @@ async function authorize() {
   }
   return oAuth2Client;
 }
+
+// Check Availability of rooms given a certain time frame
+// Returns list of available rooms
+const checkAvailability = async (startDateTime, endDateTime) => {
+  if (!startDateTime || !endDateTime) {
+    throw new Error('Missing startDateTime or endDateTime');
+  }
+
+  const auth = await authorize();
+  const startTime = new Date(startDateTime);
+  const endTime = new Date(endDateTime);
+
+  // Get approved and pending event conflicts
+  const approvedConflicts = await listEvents(APPROVED_CALENDAR_ID, auth, startTime, endTime);
+  const pendingConflicts = await listEvents(PENDING_APPROVAL_CALENDAR_ID, auth, startTime, endTime);
+
+  // Collect locations from conflicts
+  const locations = approvedConflicts.map(conflict => conflict.location);
+
+  // Extract booked rooms from locations
+  const bookedLocations = locations.flatMap(location => extractRooms(location));
+
+  // Remove duplicates and flatten the list
+  const combinedList = [...new Set(bookedLocations.flat())];
+
+  // Get available rooms by filtering out booked rooms
+  const availableRooms = Object.keys(ROOM_IDS).filter(room => !combinedList.includes(room));
+
+  return availableRooms;
+};
+
 
 // Usage example in your route
 router.get('/userEvents', async (req, res) => {
@@ -290,49 +322,36 @@ router.post('/approveEvent', async (req, res) => {
 
 
 // Check what rooms are available at any given time/date
+// Check what rooms are available at any given time/date
 router.get('/checkAvailability', async (req, res) => {
   const { startDateTime, endDateTime } = req.query;
 
-  if (!startDateTime || !endDateTime) {
-    return res.status(400).send('Missing startDateTime or endDateTime');
-  }
-
-  const auth = await authorize();
-  const startTime = new Date(startDateTime);
-  const endTime = new Date(endDateTime);
-
   try {
-    const approvedConflicts = await listEvents(APPROVED_CALENDAR_ID, auth, startTime, endTime);
-    const pendingConflicts = await listEvents(PENDING_APPROVAL_CALENDAR_ID, auth, startTime, endTime);
-
-    console.log(approvedConflicts, pendingConflicts);
-
-    // get list of locations
-    const locations = [];
-    for (conflict of approvedConflicts) {
-      locations.push(conflict.location)
-    }
-    console.log(locations);
-
-    // get list of booked locations
-    const bookedLocations = [];
-    for (location of locations) {
-      bookedLocations.push(extractRooms(location));
-    }
-
-    // Flatten and remove duplicates
-    const combinedList = [...new Set(bookedLocations.flat())]; 
-    // Get Available Rooms from combinedList
-    const availableRooms = Object.keys(ROOM_IDS).filter(room => !combinedList.includes(room));
-
-    console.log(combinedList)
-
+    const availableRooms = await checkAvailability(startDateTime, endDateTime);
     res.json(availableRooms);
   } catch (error) {
-    console.error('Error checking availability:', error);
-    res.status(500).send('Error checking availability');
+    console.error('Error checking availability:', error.message);
+    res.status(400).send(error.message);
   }
 });
+
+
+router.get('filterRooms', async (req, res) => {
+  const { date, startTime, endTime, capacity, resources } = req.query;
+  
+  console.log( req.query );
+
+  try {
+    // const availableRooms = await checkAvailability(startTime, endTime);
+    const result = await SearchRoom(capacity, resources);
+    console.log(result);
+    res.json(result);
+  } catch (error) {
+    console.error('Error filtering rooms:', error.message);
+    res.status(400).send(error.message);
+  }
+
+})
 
 
 router.post('/addUserEvent', async (req, res) => {

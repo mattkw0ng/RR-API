@@ -18,6 +18,15 @@ async function getCalendarIdByRoom(room) {
   return ROOM_IDS[room]
 }
 
+async function SearchRoom(capacity, resources) {
+  const result = await pool.query(
+    `SELECT * FROM rooms WHERE capacity >= $1 AND resources @> $2::text[]`,
+    [capacity, resources]
+  );
+  console.log(result);
+  return(result.rows);
+}
+
 // TEST : get room data from database
 router.get('/rooms', async (req, res) => {
   try {
@@ -37,17 +46,25 @@ router.post('/searchRoomBasic', async (req, res) => {
     return res.status(400).send('Missing required fields');
   }
 
+  const result = await SearchRoom(capacity, resources);
+  if (result) {
+    res.json(result);
+  } else {
+    res.status(500).send('Server Error')
+  }
+  
+
   try {
-    const result = await pool.query(
-      `SELECT * FROM rooms WHERE capacity >= $1 AND resources @> $2::text[]`,
-      [capacity, resources]
-    );
+    const result = await SearchRoom(capacity, resources);
     console.log(result);
-    res.json(result.rows);
+    res.json(result);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
 
-module.exports = router;
+module.exports = {
+  router,
+  SearchRoom
+};
