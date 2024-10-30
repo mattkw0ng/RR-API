@@ -112,7 +112,9 @@ const checkAvailability = async (startDateTime, endDateTime) => {
   return availableRooms;
 };
 
-async function getUserEvents(calendarId, userEmail) {
+async function getUserEvents(calendar, calendarId, userEmail) {
+  const now = new Date();
+
   const response = await calendar.events.list({
     calendarId: calendarId, // or your specific calendar ID
     timeMin: now.toISOString(),
@@ -141,10 +143,8 @@ router.get('/userEvents', async (req, res) => {
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
-    const now = new Date();
-
-    const pendingEvents = getUserEvents(PENDING_APPROVAL_CALENDAR_ID, userEmail);
-    const approvedEvents = getUserEvents(APPROVED_CALENDAR_ID, userEmail);
+    const pendingEvents = getUserEvents(calendar, PENDING_APPROVAL_CALENDAR_ID, userEmail);
+    const approvedEvents = getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail);
 
     // console.log("++ /userEvents events:", events);
     res.status(200).json({'pending': pendingEvents, 'approved': approvedEvents});
