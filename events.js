@@ -339,7 +339,7 @@ router.get('/checkAvailability', async (req, res) => {
 // Filter rooms based off of time, capacity, and resources
 router.post('/filterRooms', async (req, res) => {
   console.log( "Req body:", req.body );
-  const { date, startDateTime, endDateTime, capacity, resources } = req.body;
+  const { startDateTime, endDateTime, capacity, resources } = req.body;
 
   try {
     const availableRooms = await checkAvailability(startDateTime, endDateTime);
