@@ -112,6 +112,23 @@ const checkAvailability = async (startDateTime, endDateTime) => {
   return availableRooms;
 };
 
+async function getUserEvents(calendarId, userEmail) {
+  const response = await calendar.events.list({
+    calendarId: calendarId, // or your specific calendar ID
+    timeMin: now.toISOString(),
+    singleEvents: true,
+    orderBy: 'startTime',
+    q: userEmail, // Search by user email in attendees
+  });
+
+  // console.log('++ /userEvents response', response)
+  // Filter the events by matching the user's email in the attendees
+  const events = response.data.items.filter(event =>
+    event.attendees && event.attendees.some(attendee => attendee.email === userEmail)
+  );
+
+  return events
+}
 
 // Usage example in your route
 router.get('/userEvents', async (req, res) => {
@@ -126,22 +143,11 @@ router.get('/userEvents', async (req, res) => {
 
     const now = new Date();
 
-    const response = await calendar.events.list({
-      calendarId: PENDING_APPROVAL_CALENDAR_ID, // or your specific calendar ID
-      timeMin: now.toISOString(),
-      singleEvents: true,
-      orderBy: 'startTime',
-      q: userEmail, // Search by user email in attendees
-    });
-
-    // console.log('++ /userEvents response', response)
-    // Filter the events by matching the user's email in the attendees
-    const events = response.data.items.filter(event =>
-      event.attendees && event.attendees.some(attendee => attendee.email === userEmail)
-    );
+    const pendingEvents = getUserEvents(PENDING_APPROVAL_CALENDAR_ID, userEmail);
+    const approvedEvents = getUserEvents(APPROVED_CALENDAR_ID, userEmail);
 
     // console.log("++ /userEvents events:", events);
-    res.status(200).json(events);
+    res.status(200).json({'pending': pendingEvents, 'approved': approvedEvents});
   } catch (error) {
     res.status(500).send(error.message);
   }
