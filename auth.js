@@ -119,7 +119,7 @@ router.get('/auth/user', (req, res) => {
   // console.log('=======get /auth/user=======\n', req.session);
   if (req.isAuthenticated()) {
     console.log("Authenticated")
-    console.log({ user: req.user.profile })
+    // console.log({ user: req.user.profile })
     res.json({ user: req.user.profile }); // Send user info to frontend if authenticated
   } else {
     console.log("Not Authenticated")
