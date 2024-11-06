@@ -226,13 +226,14 @@ router.get('/pendingEvents', async (req, res) => {
 // MAIN ROOM REQUEST FUNCTION
 router.post('/addEventWithRooms', async (req, res) => {
   console.log("Incoming event request");
-  const { summary, location, description, startDateTime, endDateTime, rooms, userEmail } = req.body;
+  const { eventName, location, description, startDateTime, endDateTime, rooms, userEmail } = req.body;
 
-  if (!summary || !startDateTime || !endDateTime || !rooms || rooms.length === 0) {
+  if (!eventName || !startDateTime || !endDateTime || !rooms || rooms.length === 0) {
     return res.status(400).send('Missing required fields');
   }
 
   try {
+    const summary = eventName
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
