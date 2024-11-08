@@ -287,7 +287,7 @@ router.post('/addEventWithRooms', async (req, res) => {
           { method: 'popup', minutes: 10 },
         ],
       },
-      recurrence: [rRule],
+      recurrence: [`RRULE:${rRule}`],
       extendedProperties: {
         private: {
           groupName: groupName,
