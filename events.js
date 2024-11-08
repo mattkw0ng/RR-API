@@ -223,10 +223,28 @@ router.get('/pendingEvents', async (req, res) => {
   }
 });
 
+/**
+ * await axios.post(API_URL + '/api/addEventWithRooms', {
+        eventName,
+        location,
+        description,
+        congregation,
+        groupName,
+        groupLeader,
+        numPeople,
+        startDateTime: start,
+        endDateTime: end,
+        rooms: selectedRooms, // Pass selected room to server
+        userEmail: user.emails[0].value,
+        rRule,
+
+      });
+ */
+
 // MAIN ROOM REQUEST FUNCTION
 router.post('/addEventWithRooms', async (req, res) => {
   console.log("Incoming event request");
-  const { eventName, location, description, startDateTime, endDateTime, rooms, userEmail } = req.body;
+  const { eventName, location, description, congregation, groupName, groupLeader, numPeople, startDateTime, endDateTime, rooms, userEmail, rRule } = req.body;
 
   if (!eventName || !startDateTime || !endDateTime || !rooms || rooms.length === 0) {
     return res.status(400).send('Missing required fields');
@@ -269,6 +287,15 @@ router.post('/addEventWithRooms', async (req, res) => {
           { method: 'popup', minutes: 10 },
         ],
       },
+      recurrence: [rRule],
+      extendedProperties: {
+        private: {
+          groupName: groupName,
+          groupLeader: groupLeader,
+          congregation: congregation,
+          numPeople: numPeople
+        }
+      }
     };
 
     const response = await calendar.events.insert({
