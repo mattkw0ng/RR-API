@@ -222,6 +222,80 @@ router.get('/pendingEvents', async (req, res) => {
   }
 });
 
+// Get all events under Pending calendar with conflict detection and flagging
+router.get('/pendingEventsWithConflicts', async (req, res) => {
+  try {
+    const auth = await authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    // Step 1: Get all pending events
+    const pendingResponse = await calendar.events.list({
+      calendarId: PENDING_APPROVAL_CALENDAR_ID,
+      singleEvents: true, // Retrieve as individual events for easy comparison
+    });
+    const pendingEvents = pendingResponse.data.items;
+
+    // Step 2: Determine the range to check for conflicts (earliest start and latest end)
+    const pendingStartTimes = pendingEvents.map(event => new Date(event.start.dateTime || event.start.date));
+    const pendingEndTimes = pendingEvents.map(event => new Date(event.end.dateTime || event.end.date));
+
+    const timeMin = new Date(Math.min(...pendingStartTimes)).toISOString();
+    const timeMax = new Date(Math.max(...pendingEndTimes)).toISOString();
+
+    // Step 3: Use freeBusy to check for conflicts in the approved calendar within the range
+    const freeBusyResponse = await calendar.freebusy.query({
+      requestBody: {
+        timeMin,
+        timeMax,
+        items: [{ id: APPROVED_CALENDAR_ID }],
+      },
+    });
+
+    // Collect busy times from the approved calendar
+    const approvedBusyTimes = freeBusyResponse.data.calendars[APPROVED_CALENDAR_ID].busy;
+
+    // Step 4: Check each pending event against approved busy times to flag conflicts
+    const flaggedPendingEvents = pendingEvents.map(pendingEvent => {
+      const pendingStart = new Date(pendingEvent.start.dateTime || pendingEvent.start.date);
+      const pendingEnd = new Date(pendingEvent.end.dateTime || pendingEvent.end.date);
+
+      // Find conflicts with approved calendar
+      const conflictingApprovedEvent = approvedBusyTimes.find(busyTime =>
+        (new Date(busyTime.start) < pendingEnd) && (new Date(busyTime.end) > pendingStart)
+      );
+
+      // Find conflicts with other pending events
+      const conflictingPendingEvents = pendingEvents.filter(otherEvent => {
+        if (otherEvent.id === pendingEvent.id) return false;
+        const otherStart = new Date(otherEvent.start.dateTime || otherEvent.start.date);
+        const otherEnd = new Date(otherEvent.end.dateTime || otherEvent.end.date);
+        return (otherStart < pendingEnd && otherEnd > pendingStart);
+      });
+
+      // Add conflict info if any conflicts are found
+      if (conflictingApprovedEvent || conflictingPendingEvents.length > 0) {
+        return {
+          ...pendingEvent,
+          conflict: true,
+          conflictsWith: [
+            ...(conflictingApprovedEvent ? [{ type: 'approved', ...conflictingApprovedEvent }] : []),
+            ...conflictingPendingEvents.map(event => ({ type: 'pending', ...event }))
+          ],
+        };
+      } else {
+        return pendingEvent;
+      }
+    });
+
+    // Step 5: Return flagged pending events
+    res.status(200).json(flaggedPendingEvents);
+
+  } catch (error) {
+    console.error('Error fetching pending events:', error.message);
+    res.status(500).send('Error fetching pending events: ' + error.message);
+  }
+});
+
 /**
  * await axios.post(API_URL + '/api/addEventWithRooms', {
         eventName,
@@ -286,7 +360,6 @@ router.post('/addEventWithRooms', async (req, res) => {
           { method: 'popup', minutes: 10 },
         ],
       },
-      recurrence: [`RRULE:${rRule}`],
       extendedProperties: {
         private: {
           groupName: groupName,
@@ -296,6 +369,10 @@ router.post('/addEventWithRooms', async (req, res) => {
         }
       }
     };
+
+    if (rRule != 'FREQ=') {
+      event[recurrence] = [`RRULE:${rRule}`]
+    }
 
     const response = await calendar.events.insert({
       calendarId: PENDING_APPROVAL_CALENDAR_ID,
