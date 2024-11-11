@@ -232,6 +232,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     const pendingResponse = await calendar.events.list({
       calendarId: PENDING_APPROVAL_CALENDAR_ID,
       singleEvents: true, // Retrieve as individual events for easy comparison
+      timeMin: new Date()
     });
     const pendingEvents = pendingResponse.data.items;
 
