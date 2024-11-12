@@ -108,7 +108,7 @@ const checkAvailability = async (startDateTime, endDateTime) => {
 
   // Get available rooms by filtering out booked rooms
   const availableRooms = Object.keys(ROOM_IDS).filter(room => !combinedList.includes(room));
-  
+
   return availableRooms;
 };
 
@@ -146,7 +146,7 @@ router.get('/userEvents', async (req, res) => {
     const pendingEvents = await getUserEvents(calendar, PENDING_APPROVAL_CALENDAR_ID, userEmail);
     const approvedEvents = await getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail);
 
-    const result = {'pending': pendingEvents, 'approved': approvedEvents}
+    const result = { 'pending': pendingEvents, 'approved': approvedEvents }
 
     // console.log("++ /userEvents events:", events);
     res.status(200).json(result);
@@ -222,6 +222,20 @@ router.get('/pendingEvents', async (req, res) => {
   }
 });
 
+async function getConflicts(room, start, end, id, calendar) {
+  const conflictsResponse = await calendar.events.list({
+    calendarId: room,
+    singleEvents: true,
+    timeMin: start,
+    timeMax: end,
+  })
+
+  const conflicts = conflictsResponse.data.items.filter(
+    (roomEvent) => roomEvent.id !== id
+  );;
+  return conflicts
+}
+
 // Get all events under Pending calendar with conflict detection and flagging
 router.get('/pendingEventsWithConflicts', async (req, res) => {
   try {
@@ -231,30 +245,50 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     // Fetch pending events with room resources
     const response = await calendar.events.list({
       calendarId: PENDING_APPROVAL_CALENDAR_ID,
-      singleEvents: true, // Ensure events are expanded to individual instances
-      orderBy: 'startTime',
+      singleEvents: false, // Ensure events are expanded to individual instances
       timeMin: new Date(),
     });
     const pendingEvents = response.data.items;
 
     // Check each room's availability independently
     for (const pendingEvent of pendingEvents) {
-      const {attendees, start, end} = pendingEvent
+      const { attendees, start, end } = pendingEvent
       const roomResource = attendees?.find(attendee => attendee.resource === true);
 
-      const conflictsResponse = await calendar.events.list({
-        calendarId: roomResource.email,
-        singleEvents: true,
-        timeMin: start.dateTime,
-        timeMax: end.dateTime,
-      })
+      if (pendingEvent.recurrence) {
+        // For recurring events, find all instances and check conflicts for each instance
+        /*
+          {
+            event,
+            ...,
+            instances: [
+              {event,
+              conflicts},
+              {event,
+              conflicts},
+            ],
+          }
+        */
+        const instancesResponse = await calendar.events.instances({
+          calendarId: PENDING_APPROVAL_CALENDAR_ID,
+          eventId: pendingEvent.id,
+        })
+        const instances = instancesResponse.data.items;
 
-      const conflicts = conflictsResponse.data.items;
+        const instancesElaborated = [];
 
-      pendingEvent.conflicts = conflicts.filter(
-        (roomEvent) => roomEvent.id !== pendingEvent.id
-      );
+        for (const instance of instances) {
+          const conflicts = await getConflicts(roomResource.email, instance.start.dateTime, instance.end.dateTime, instance.id, calendar);
+          instance.conflicts = conflicts;
+          instancesElaborated.push(instance);
+        }
 
+        pendingEvent.instances = instancesElaborated;
+      } else {
+        // Otherwise check conflicts for single event and add it to the event details 
+        const conflicts = await getConflicts(roomResource.email, start.dateTime, end.dateTime, pendingEvent.id, calendar);
+        pendingEvent.conflicts = conflicts;
+      }
     }
 
     res.status(200).json(pendingEvents);
@@ -393,7 +427,7 @@ router.post('/approveEvent', async (req, res) => {
       console.log(response);
     })
 
-    
+
     res.status(200).send('Event approved');
   } catch (error) {
     console.error('Error approving event:', error);
@@ -419,14 +453,14 @@ router.get('/checkAvailability', async (req, res) => {
 
 // Filter rooms based off of time, capacity, and resources
 router.post('/filterRooms', async (req, res) => {
-  console.log( "Req body:", req.body );
+  console.log("Req body:", req.body);
   const { startDateTime, endDateTime, capacity, resources } = req.body;
 
   try {
     const availableRooms = await checkAvailability(startDateTime, endDateTime);
     const matchingRooms = await roomsTools.SearchRoom(capacity, resources);
     console.log("CheckAvailability", availableRooms);
-    
+
     const matchingRoomsNames = matchingRooms.map((elem) => {
       return elem.room_name;
     })
@@ -446,56 +480,56 @@ router.post('/filterRooms', async (req, res) => {
 
 router.post('/addUserEvent', async (req, res) => {
   if (!req.user) {
-      return res.status(401).send('User not authenticated');
+    return res.status(401).send('User not authenticated');
   }
 
   const { summary, location, description, startDateTime, endDateTime } = req.body;
 
   if (!summary || !startDateTime || !endDateTime) {
-      return res.status(400).send('Missing required fields');
+    return res.status(400).send('Missing required fields');
   }
 
   try {
-      const oauth2Client = new google.auth.OAuth2();
-      oauth2Client.setCredentials(req.user.token);
+    const oauth2Client = new google.auth.OAuth2();
+    oauth2Client.setCredentials(req.user.token);
 
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-      const event = {
-          summary,
-          location,
-          description,
-          start: {
-              dateTime: startDateTime,
-              timeZone: 'America/Los_Angeles',
-          },
-          end: {
-              dateTime: endDateTime,
-              timeZone: 'America/Los_Angeles',
-          },
-          reminders: {
-              useDefault: false,
-              overrides: [
-                  { method: 'email', minutes: 24 * 60 },
-                  { method: 'popup', minutes: 10 },
-              ],
-          },
-      };
+    const event = {
+      summary,
+      location,
+      description,
+      start: {
+        dateTime: startDateTime,
+        timeZone: 'America/Los_Angeles',
+      },
+      end: {
+        dateTime: endDateTime,
+        timeZone: 'America/Los_Angeles',
+      },
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: 'email', minutes: 24 * 60 },
+          { method: 'popup', minutes: 10 },
+        ],
+      },
+    };
 
-      calendar.events.insert({
-          calendarId: 'primary',
-          resource: event,
-      }, (err, event) => {
-          if (err) {
-              console.error('There was an error contacting the Calendar service:', err.message);
-              return res.status(500).send('Error adding event: ' + err.message);
-          }
-          console.log('Event created: %s', event.data.htmlLink);
-          res.status(200).send('Event added to your calendar');
-      });
+    calendar.events.insert({
+      calendarId: 'primary',
+      resource: event,
+    }, (err, event) => {
+      if (err) {
+        console.error('There was an error contacting the Calendar service:', err.message);
+        return res.status(500).send('Error adding event: ' + err.message);
+      }
+      console.log('Event created: %s', event.data.htmlLink);
+      res.status(200).send('Event added to your calendar');
+    });
   } catch (error) {
-      console.error('Error adding event:', error);
-      res.status(500).send('Error adding event');
+    console.error('Error adding event:', error);
+    res.status(500).send('Error adding event');
   }
 });
 
