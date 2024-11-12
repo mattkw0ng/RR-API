@@ -223,7 +223,6 @@ router.get('/pendingEvents', async (req, res) => {
 });
 
 // Get all events under Pending calendar with conflict detection and flagging
-// Get all the events under the "Pending Events Calendar"
 router.get('/pendingEventsWithConflicts', async (req, res) => {
   try {
     const auth = await authorize();
@@ -238,71 +237,24 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     });
     const pendingEvents = response.data.items;
 
-    // Extract the unique rooms from pending events
-    const rooms = pendingEvents.map(event => {
-      const roomResource = event.attendees?.find(attendee => attendee.resource === true);
-      return roomResource ? roomResource.email : null;
-    }).filter(room => room); // Filter out any null values
-
-    const conflicts = [];
-
     // Check each room's availability independently
-    for (const roomEmail of rooms) {
-      const roomEvents = pendingEvents.filter(event =>
-        event.attendees?.some(attendee => attendee.email === roomEmail && attendee.resource === true)
+    for (const pendingEvent of pendingEvents) {
+      const conflictsResponse = await calendar.events.list({
+        calendarId: pendingEvent.room,
+        singleEvents: true,
+        timeMin: pendingEvent.start.dateTime,
+        timeMax: pendingEvent.end.dateTime,
+      })
+
+      const conflicts = conflictsResponse.data.items;
+
+      pendingEvent.conflicts = roomEvents.filter(
+        (roomEvent) => roomEvent.id !== pendingEvent.id
       );
 
-      if (roomEvents.length > 0) {
-        // Define time range for checking conflicts based on the earliest and latest pending event times in this room
-        const minStartTime = roomEvents.reduce((min, event) =>
-          new Date(event.start.dateTime) < min ? new Date(event.start.dateTime) : min, new Date(roomEvents[0].start.dateTime)
-        );
-        const maxEndTime = roomEvents.reduce((max, event) =>
-          new Date(event.end.dateTime) > max ? new Date(event.end.dateTime) : max, new Date(roomEvents[0].end.dateTime)
-        );
-
-        // Freebusy query for the room
-        const freeBusyResponse = await calendar.freebusy.query({
-          requestBody: {
-            timeMin: minStartTime.toISOString(),
-            timeMax: maxEndTime.toISOString(),
-            items: [{ id: roomEmail }]
-          }
-        });
-
-        const busyTimes = freeBusyResponse.data.calendars[roomEmail]?.busy || [];
-
-        // Check for conflicts with approved events
-        roomEvents.forEach(pendingEvent => {
-          const pendingStart = new Date(pendingEvent.start.dateTime);
-          const pendingEnd = new Date(pendingEvent.end.dateTime);
-
-          const conflict = busyTimes.find(busySlot =>
-            (pendingStart < new Date(busySlot.end) && pendingEnd > new Date(busySlot.start))
-          );
-
-          if (conflict) {
-            conflicts.push({
-              event: pendingEvent,
-              conflictWith: conflict,
-              room: roomEmail
-            });
-          }
-        });
-      }
     }
 
-    // Add conflict information to each pending event and return the result
-    const enrichedPendingEvents = pendingEvents.map(event => {
-      const conflict = conflicts.find(conf => conf.event.id === event.id);
-      return {
-        ...event,
-        conflictWith: conflict ? conflict.conflictWith : null,
-        room: conflict ? conflict.room : null
-      };
-    });
-
-    res.status(200).json(enrichedPendingEvents);
+    res.status(200).json(pendingEvents);
   } catch (error) {
     console.error('Error fetching pending events:', error.message);
     res.status(500).send('Error fetching pending events: ' + error.message);
