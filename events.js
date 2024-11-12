@@ -239,11 +239,14 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 
     // Check each room's availability independently
     for (const pendingEvent of pendingEvents) {
+      const {room, start, end} = pendingEvent
+      console.log(room)
+
       const conflictsResponse = await calendar.events.list({
-        calendarId: pendingEvent.room,
+        calendarId: room,
         singleEvents: true,
-        timeMin: pendingEvent.start.dateTime,
-        timeMax: pendingEvent.end.dateTime,
+        timeMin: start.dateTime,
+        timeMax: end.dateTime,
       })
 
       const conflicts = conflictsResponse.data.items;
