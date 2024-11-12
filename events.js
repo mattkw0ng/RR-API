@@ -248,7 +248,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 
       const conflicts = conflictsResponse.data.items;
 
-      pendingEvent.conflicts = roomEvents.filter(
+      pendingEvent.conflicts = conflicts.filter(
         (roomEvent) => roomEvent.id !== pendingEvent.id
       );
 
