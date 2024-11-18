@@ -122,6 +122,10 @@ app.use('/', authRoutes);
 app.use('/', eventRoutes);
 app.use('/', roomsRoutes.router)
 
+app.get('/test', async (req, res) => {
+  res.send("Hello World!!");
+})
+
 app.listen(PORT, () => {
   authorize();
   console.log(`\nServer running on http://3.20.203.208:${PORT}`);
