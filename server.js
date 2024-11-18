@@ -118,9 +118,9 @@ async function authorize() {
   return oAuth2Client;
 }
 
-app.use('/', authRoutes);
-app.use('/', eventRoutes);
-app.use('/', roomsRoutes.router)
+app.use('/api/', authRoutes);
+app.use('/api/', eventRoutes);
+app.use('/api/', roomsRoutes.router)
 
 app.get('/test', async (req, res) => {
   res.send("Hello World!!");
