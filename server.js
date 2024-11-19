@@ -51,7 +51,7 @@ const PORT = 5000;
 
 app.use(bodyParser.json());
 
-const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
+const CREDENTIALS_PATH = path.join(__dirname, 'json/credentials.json');
 const TOKEN_PATH = path.join(__dirname, 'token.json');
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
