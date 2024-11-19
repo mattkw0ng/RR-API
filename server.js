@@ -4,7 +4,7 @@ const { google } = require('googleapis');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
-const initializePassport = require('./passportConfig');
+const initializePassport = require('./config/passportConfig');
 const session = require('express-session');
 const RedisStore = require('connect-redis').default;
 const { createClient } = require('redis');
@@ -14,7 +14,7 @@ const cookieParser = require('cookie-parser')
 const authRoutes = require('./auth');
 const eventRoutes = require('./events');
 const roomsRoutes = require('./rooms');
-const { CLIENT_URL } = require('./config');
+const { CLIENT_URL } = require('./config/config');
 
 // CORS config
 const corsOptions = {

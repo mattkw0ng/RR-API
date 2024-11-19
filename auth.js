@@ -4,7 +4,7 @@ const passport = require('passport');
 const router = express.Router();
 const pool = require('./db');
 const { google } = require('googleapis');
-const { CLIENT_URL } = require('./config');
+const { CLIENT_URL } = require('./config/config');
 
 async function authorizeUser(email) {
   const result = await pool.query('SELECT access_token, refresh_token, token_expiry FROM users WHERE email = $1', [email]);

@@ -236,7 +236,7 @@ async function getConflicts(room, start, end, id, calendar) {
   return conflicts
 }
 
-// Get all events under Pending calendar with conflict detection and flagging
+// Get all events under Pending calendar with conflict detection and flagging (ADMIN PAGE)
 router.get('/pendingEventsWithConflicts', async (req, res) => {
   try {
     const auth = await authorize();
@@ -250,6 +250,10 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     });
     const pendingEvents = response.data.items;
 
+    const separatedEvents = {
+      quickApprove: [],
+      conflicts: []
+    }
     // Check each room's availability independently
     for (const pendingEvent of pendingEvents) {
       const { attendees, start, end } = pendingEvent
@@ -257,7 +261,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 
       if (pendingEvent.recurrence) {
         // For recurring events, find all instances and check conflicts for each instance
-        /*
+        /* FORMAT
           {
             event,
             ...,
@@ -276,22 +280,36 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
         const instances = instancesResponse.data.items;
 
         const instancesElaborated = [];
-
+        const isConflict = false;
         for (const instance of instances) {
           const conflicts = await getConflicts(roomResource.email, instance.start.dateTime, instance.end.dateTime, instance.id, calendar);
+          isConflict = isConflict || conflicts.length >= 0; //update isconflict to be true if there are conflicts
           instance.conflicts = conflicts;
           instancesElaborated.push(instance);
         }
 
         pendingEvent.instances = instancesElaborated;
+        if (isConflict) {
+          separatedEvents.conflicts.push(pendingEvent);
+        } else {
+          separatedEvents.quickApprove.push(pendingEvent);
+        }
+        
       } else {
         // Otherwise check conflicts for single event and add it to the event details 
         const conflicts = await getConflicts(roomResource.email, start.dateTime, end.dateTime, pendingEvent.id, calendar);
         pendingEvent.conflicts = conflicts;
+        // Place event into according list of separatedEvents
+        if ( conflicts.length >= 0 ) {
+          separatedEvents.conflicts.push(pendingEvent);
+        } else {
+          separatedEvents.quickApprove.push(pendingEvent);
+        }
+        
       }
     }
 
-    res.status(200).json(pendingEvents);
+    res.status(200).json(separatedEvents);
   } catch (error) {
     console.error('Error fetching pending events:', error.message);
     res.status(500).send('Error fetching pending events: ' + error.message);
@@ -299,7 +317,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 });
 
 
-/**
+/** Example POST request
  * await axios.post(API_URL + '/api/addEventWithRooms', {
         eventName,
         location,
@@ -436,8 +454,6 @@ router.post('/approveEvent', async (req, res) => {
 });
 
 
-
-
 // Check what rooms are available at any given time/date
 router.get('/checkAvailability', async (req, res) => {
   const { startDateTime, endDateTime } = req.query;
@@ -562,6 +578,31 @@ router.get('/eventsByAttendee', async (req, res) => {
     }
   });
 });
+
+// Reject a pending Event (delete?)
+router.delete('rejectEvent', async (req, res) => {
+  try {
+    const { eventId } = req.body;
+    const auth = await authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    await calendar.events.delete({
+      calendarId: PENDING_APPROVAL_CALENDAR_ID, // Pending Calendar ID
+      eventId: eventId, // Event ID
+    });
+
+    res.status(200).json({ message: 'Event successfully deleted' });
+  } catch (error) {
+    console.error('Error deleting event:', error.message);
+
+    // Step 5: Handle errors
+    if (error.code === 404) {
+      res.status(404).json({ error: 'Event not found' });
+    } else {
+      res.status(500).json({ error: 'Failed to delete event' });
+    }
+  }
+})
 
 
 module.exports = router;

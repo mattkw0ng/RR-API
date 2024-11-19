@@ -1,5 +1,5 @@
 const { Client } = require('pg');
-const pool = require('./db');
+const pool = require('../db');
 
 // Create a new client instance
 const client = new Client({
