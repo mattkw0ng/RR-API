@@ -7,7 +7,7 @@ const fs = require('fs');
  * @param {*} app 
  */
 function initializePassport(app) {
-    const credentials = JSON.parse(fs.readFileSync('./credentials.json', 'utf-8'));
+    const credentials = JSON.parse(fs.readFileSync('../json/credentials.json', 'utf-8'));
     const { client_secret, client_id, callback_url } = credentials.passport;
     
     app.use(passport.initialize());
