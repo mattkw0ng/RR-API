@@ -4,11 +4,11 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const roomsTools = require('./rooms')
-const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
-const TOKEN_PATH = path.join(__dirname, 'token.json');
+const CREDENTIALS_PATH = path.join(__dirname, 'json/credentials.json');
+const TOKEN_PATH = path.join(__dirname, 'json/token.json');
 const PENDING_APPROVAL_CALENDAR_ID = "c_0430068aa84472bdb1aa16b35d4061cd867e4888a8ace5fa3d830bb67587dfad@group.calendar.google.com";
 const APPROVED_CALENDAR_ID = 'c_8f9a221bd12882ccda21c5fb81effbad778854cc940c855b25086414babb1079@group.calendar.google.com';
-const ROOM_IDS_PATH = path.join(__dirname, 'room-ids.json');
+const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 
 
