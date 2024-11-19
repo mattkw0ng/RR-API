@@ -250,7 +250,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     });
     const pendingEvents = response.data.items;
 
-    const separatedEvents = {
+    let separatedEvents = {
       quickApprove: [],
       conflicts: []
     }
