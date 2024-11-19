@@ -283,7 +283,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
         let isConflict = false;
         for (const instance of instances) {
           const conflicts = await getConflicts(roomResource.email, instance.start.dateTime, instance.end.dateTime, instance.id, calendar);
-          isConflict = isConflict || conflicts.length >= 0; //update isconflict to be true if there are conflicts
+          isConflict = isConflict || conflicts.length > 0; //update isconflict to be true if there are conflicts
           instance.conflicts = conflicts;
           instancesElaborated.push(instance);
         }
@@ -300,7 +300,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
         const conflicts = await getConflicts(roomResource.email, start.dateTime, end.dateTime, pendingEvent.id, calendar);
         pendingEvent.conflicts = conflicts;
         // Place event into according list of separatedEvents
-        if ( conflicts.length >= 0 ) {
+        if ( conflicts.length > 0 ) {
           separatedEvents.conflicts.push(pendingEvent);
         } else {
           separatedEvents.quickApprove.push(pendingEvent);
