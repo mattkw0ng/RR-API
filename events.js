@@ -250,7 +250,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     });
     const pendingEvents = response.data.items;
 
-    let separatedEvents = {
+    const separatedEvents = {
       quickApprove: [],
       conflicts: []
     }
@@ -280,7 +280,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
         const instances = instancesResponse.data.items;
 
         const instancesElaborated = [];
-        const isConflict = false;
+        let isConflict = false;
         for (const instance of instances) {
           const conflicts = await getConflicts(roomResource.email, instance.start.dateTime, instance.end.dateTime, instance.id, calendar);
           isConflict = isConflict || conflicts.length >= 0; //update isconflict to be true if there are conflicts
