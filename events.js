@@ -392,7 +392,7 @@ router.post('/addEventWithRooms', async (req, res) => {
     };
 
     if (rRule != 'FREQ=') {
-      event[recurrence] = [`RRULE:${rRule}`]
+      event.recurrence = [`RRULE:${rRule}`]
     }
 
     const response = await calendar.events.insert({
