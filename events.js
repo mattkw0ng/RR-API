@@ -222,6 +222,47 @@ router.get('/pendingEvents', async (req, res) => {
   }
 });
 
+// Get Events for specific room and day
+router.get('/getEventsByRoom', async (req, res) => {
+  const { room, time } = req.query;
+
+  if (!room) {
+    return res.status(400).json({ error: 'Room parameter is required' });
+  }
+
+  const calendarId = ROOM_IDS[room];
+
+  if (!calendarId) {
+    return res.status(404).json({ error: `Room "${room}" not found.` });
+  }
+
+  if (!time) {
+    return res.status(400).json({ error: 'Time parameter is required' });
+  }
+
+  try {
+    // Extract the start of the day and end of the day for the given time
+    const targetDate = new Date(time);
+    const timeMin = new Date(targetDate.setHours(0, 0, 0, 0)).toISOString(); // Start of the day
+    const timeMax = new Date(targetDate.setHours(23, 59, 59, 999)).toISOString(); // End of the day
+
+    // Query events from the specific room calendar within the time range
+    const response = await calendar.events.list({
+      calendarId: calendarId,
+      singleEvents: true,
+      orderBy: 'startTime',
+      timeMin: timeMin,
+      timeMax: timeMax,
+    });
+
+    const events = response.data.items || [];
+    res.status(200).json(events);
+  } catch (error) {
+    console.error(`Error fetching events for room "${room}":`, error.message);
+    res.status(500).json({ error: 'Failed to fetch events for the specified room and time.' });
+  }
+});
+
 async function getConflicts(room, start, end, id, calendar) {
   const conflictsResponse = await calendar.events.list({
     calendarId: room,
