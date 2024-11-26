@@ -224,6 +224,8 @@ router.get('/pendingEvents', async (req, res) => {
 
 // Get Events for specific room and day
 router.get('/getEventsByRoom', async (req, res) => {
+  const auth = await authorize();
+  const calendar = google.calendar({ version: 'v3', auth });
   const { room, time } = req.query;
 
   if (!room) {
