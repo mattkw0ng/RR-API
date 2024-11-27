@@ -294,7 +294,9 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     // Check each room's availability independently
     for (const pendingEvent of pendingEvents) {
       const { start, end, extendedProperties } = pendingEvent
+      console.log(pendingEvent);
       const roomResources = extendedProperties.private.rooms.map((room) => room.email) // generate list of roomIds attatched to this event
+      console.log(roomResources);
       // const roomResource = attendees?.find(attendee => attendee.resource === true);
 
       if (pendingEvent.recurrence) {
