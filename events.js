@@ -222,20 +222,14 @@ router.get('/pendingEvents', async (req, res) => {
   }
 });
 
-// Get Events for specific room and day
+// Get events for specific room and day
 router.get('/getEventsByRoom', async (req, res) => {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
-  const { room, time } = req.query;
+  const { roomId, time } = req.query;
 
-  if (!room) {
+  if (!roomId) {
     return res.status(400).json({ error: 'Room parameter is required' });
-  }
-
-  const calendarId = ROOM_IDS[room];
-
-  if (!calendarId) {
-    return res.status(404).json({ error: `Room "${room}" not found.` });
   }
 
   if (!time) {
@@ -250,7 +244,7 @@ router.get('/getEventsByRoom', async (req, res) => {
 
     // Query events from the specific room calendar within the time range
     const response = await calendar.events.list({
-      calendarId: calendarId,
+      calendarId: roomId,
       singleEvents: true,
       orderBy: 'startTime',
       timeMin: timeMin,
@@ -299,8 +293,9 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     }
     // Check each room's availability independently
     for (const pendingEvent of pendingEvents) {
-      const { attendees, start, end } = pendingEvent
-      const roomResource = attendees?.find(attendee => attendee.resource === true);
+      const { start, end, extendedProperties } = pendingEvent
+      const roomResources = extendedProperties.private.rooms.map((room) => room.email) // generate list of roomIds attatched to this event
+      // const roomResource = attendees?.find(attendee => attendee.resource === true);
 
       if (pendingEvent.recurrence) {
         // For recurring events, find all instances and check conflicts for each instance
@@ -325,7 +320,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
         const instancesElaborated = [];
         let isConflict = false;
         for (const instance of instances) {
-          const conflicts = await getConflicts(roomResource.email, instance.start.dateTime, instance.end.dateTime, instance.id, calendar);
+          const conflicts = await roomResources.map((roomId) => getConflicts(roomId, instance.start.dateTime, instance.end.dateTime, instance.id, calendar)).then((res) => res.flat());
           isConflict = isConflict || conflicts.length > 0; //update isconflict to be true if there are conflicts
           instance.conflicts = conflicts;
           instancesElaborated.push(instance);
@@ -340,7 +335,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
         
       } else {
         // Otherwise check conflicts for single event and add it to the event details 
-        const conflicts = await getConflicts(roomResource.email, start.dateTime, end.dateTime, pendingEvent.id, calendar);
+        const conflicts = await roomResources.map((roomId) => getConflicts(roomId, start.dateTime, end.dateTime, pendingEvent.id, calendar)).then((res) => res.flat());
         pendingEvent.conflicts = conflicts;
         // Place event into according list of separatedEvents
         if ( conflicts.length > 0 ) {
@@ -414,7 +409,6 @@ router.post('/addEventWithRooms', async (req, res) => {
         timeZone: 'America/Los_Angeles',
       },
       attendees: [
-        ...roomAttendees, // Add all the room resources
         { email: userEmail } // Add the user as an attendee
       ],
       reminders: {
@@ -426,6 +420,7 @@ router.post('/addEventWithRooms', async (req, res) => {
       },
       extendedProperties: {
         private: {
+          rooms: roomAttendees, // Store Room Information Here (not added officially to the room resource calendar until 'approved')
           groupName: groupName,
           groupLeader: groupLeader,
           congregation: congregation,
@@ -464,29 +459,31 @@ router.post('/approveEvent', async (req, res) => {
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
-    // // Retrieve the event details from the "Pending approval" calendar
-    // const eventResponse = await calendar.events.get({
-    //   calendarId: PENDING_APPROVAL_CALENDAR_ID,
-    //   eventId: eventId,
-    // });
-
-    // const event = eventResponse.data;
-
-    // console.log("++ Approve Events event data:", event);
-
-    // // Insert the event into the "approved" calendar
-    // await calendar.events.insert({
-    //   calendarId: APPROVED_CALENDAR_ID,
-    //   resource: event,
-    // });
-
-    await calendar.events.move({
+    // Retrieve the event details from the "Pending approval" calendar
+    const eventResponse = await calendar.events.get({
       calendarId: PENDING_APPROVAL_CALENDAR_ID,
       eventId: eventId,
-      destination: APPROVED_CALENDAR_ID,
-    }).then((response) => {
-      console.log(response);
-    })
+    });
+
+    const event = eventResponse.data;
+    // attatch room to event as an attendee
+    event.attendees.push(...event.extendedProperties.rooms)
+
+    console.log("++ Approve Events event data:", event);
+
+    // Insert the event into the "approved" calendar
+    await calendar.events.insert({
+      calendarId: APPROVED_CALENDAR_ID,
+      resource: event,
+    });
+
+    // await calendar.events.move({
+    //   calendarId: PENDING_APPROVAL_CALENDAR_ID,
+    //   eventId: eventId,
+    //   destination: APPROVED_CALENDAR_ID,
+    // }).then((response) => {
+    //   console.log(response);
+    // })
 
 
     res.status(200).send('Event approved');
