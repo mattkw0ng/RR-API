@@ -396,6 +396,7 @@ router.post('/addEventWithRooms', async (req, res) => {
         return { email: roomId, resource: true };
       })
     );
+    console.log(roomAttendees)
 
     // Create the event object
     const event = {
@@ -430,6 +431,7 @@ router.post('/addEventWithRooms', async (req, res) => {
         }
       }
     };
+    console.log("Event Details", event);
 
     if (rRule != 'FREQ=') {
       event.recurrence = [`RRULE:${rRule}`]
