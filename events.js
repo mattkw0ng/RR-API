@@ -295,7 +295,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     for (const pendingEvent of pendingEvents) {
       const { start, end, extendedProperties } = pendingEvent
       console.log(pendingEvent);
-      const roomResources = extendedProperties.private.rooms.map((room) => room.email) // generate list of roomIds attatched to this event
+      const roomResources = JSON.parse(extendedProperties.private.rooms).map((room) => room.email) // generate list of roomIds attatched to this event
       console.log(roomResources);
       // const roomResource = attendees?.find(attendee => attendee.resource === true);
 
@@ -423,7 +423,7 @@ router.post('/addEventWithRooms', async (req, res) => {
       },
       extendedProperties: {
         private: {
-          rooms: roomAttendees, // Store Room Information Here (not added officially to the room resource calendar until 'approved')
+          rooms: JSON.stringify(roomAttendee), // Store Room Information Here (not added officially to the room resource calendar until 'approved')
           groupName: groupName,
           groupLeader: groupLeader,
           congregation: congregation,
@@ -471,7 +471,7 @@ router.post('/approveEvent', async (req, res) => {
 
     const event = eventResponse.data;
     // attatch room to event as an attendee
-    event.attendees.push(...event.extendedProperties.rooms)
+    event.attendees.push(...JSON.parse(event.extendedProperties.rooms))
 
     console.log("++ Approve Events event data:", event);
 
