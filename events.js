@@ -322,7 +322,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
         const instancesElaborated = [];
         let isConflict = false;
         for (const instance of instances) {
-          const conflicts = await roomResources.map((roomId) => getConflicts(roomId, instance.start.dateTime, instance.end.dateTime, instance.id, calendar)).then((res) => res.flat());
+          const conflicts = await roomResources.map((roomId) => getConflicts(roomId, instance.start.dateTime, instance.end.dateTime, instance.id, calendar)).flat();
           isConflict = isConflict || conflicts.length > 0; //update isconflict to be true if there are conflicts
           instance.conflicts = conflicts;
           instancesElaborated.push(instance);
@@ -337,7 +337,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
         
       } else {
         // Otherwise check conflicts for single event and add it to the event details 
-        const conflicts = await roomResources.map((roomId) => getConflicts(roomId, start.dateTime, end.dateTime, pendingEvent.id, calendar)).then((res) => res.flat());
+        const conflicts = await roomResources.map((roomId) => getConflicts(roomId, start.dateTime, end.dateTime, pendingEvent.id, calendar)).flat();
         pendingEvent.conflicts = conflicts;
         // Place event into according list of separatedEvents
         if ( conflicts.length > 0 ) {
