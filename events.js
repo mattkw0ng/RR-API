@@ -423,7 +423,7 @@ router.post('/addEventWithRooms', async (req, res) => {
       },
       extendedProperties: {
         private: {
-          rooms: JSON.stringify(roomAttendee), // Store Room Information Here (not added officially to the room resource calendar until 'approved')
+          rooms: JSON.stringify(roomAttendees), // Store Room Information Here (not added officially to the room resource calendar until 'approved')
           groupName: groupName,
           groupLeader: groupLeader,
           congregation: congregation,
