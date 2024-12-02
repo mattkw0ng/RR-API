@@ -267,16 +267,17 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
     timeMin: timeMin, // ISO 8601 format
     timeMax: timeMax, // ISO 8601 format
     timeZone: "America/Los_Angeles",
-    items: roomList.map((id) => ({ id })),
+    items: Object.values(ROOM_IDS).map((id) => ({ id })),
   };
 
   const response = await calendar.freebusy.query({ requestBody });
   const busyRooms = response.data.calendars;
 
   // Determine available rooms
-  const availableRooms = roomList.filter((roomName) => {
-    const calendarId = roomList[roomName];
-    return busyRooms[calendarId].busy.length === 0; // Room is available if no busy times
+  const availableRooms = Object.keys(ROOM_IDS).filter((roomName) => {
+    const calendarId = ROOM_IDS[roomName];
+    console.log(busyRooms[calendarId].busy);
+    return !roomList.includes(roomName) & busyRooms[calendarId].busy.length === 0; // Room is available if no busy times
   });
 
   console.log("Available Rooms:", availableRooms);
@@ -287,10 +288,9 @@ router.get('/getAvailableRooms', async (req, res) => {
   const { timeMin, timeMax, excludeRooms } = req.query;
   const auth = await authorize();
   try {
-    const excludeRoomsList = JSON.parse(excludeRooms)
-    const roomList = Object.values(ROOM_IDS).filter((val) => !excludeRoomsList.includes(val));
-    console.log('roomList', roomList);
-    const availableRooms = await getAvailableRooms(auth, timeMin, timeMax, roomList);
+    const excludeRoomList = JSON.parse(excludeRooms);
+    console.log(excludeRoomList);
+    const availableRooms = await getAvailableRooms(auth, timeMin, timeMax, excludeRoomList);
     res.status(200).json(availableRooms);
   } catch (error) {
     console.error(`Error fetching available rooms for time: ${timeMin} - ${timeMax}:`, error.message);
