@@ -285,9 +285,10 @@ async function getAvailableRooms(auth, timeMin, timeMax) {
 }
 
 router.get('/getAvailableRooms', async (req, res) => {
-  const { timeMin, timeMax } = req.query;
+  const { timeMin, timeMax, excludeRooms } = req.query;
   const auth = await authorize();
   try {
+    console.log("exclude: ",excludeRooms);
     const availableRooms = await getAvailableRooms(auth, timeMin, timeMax);
     res.status(200).json(availableRooms);
   } catch (error) {
