@@ -274,8 +274,8 @@ async function getAvailableRooms(auth, timeMin, timeMax) {
   const busyRooms = response.data.calendars;
 
   // Determine available rooms
-  const availableRooms = Object.keys(roomCalendars).filter((roomName) => {
-    const calendarId = roomCalendars[roomName];
+  const availableRooms = Object.keys(ROOM_IDS).filter((roomName) => {
+    const calendarId = ROOM_IDS[roomName];
     return busyRooms[calendarId].busy.length === 0; // Room is available if no busy times
   });
 
