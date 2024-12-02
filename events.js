@@ -259,6 +259,30 @@ router.get('/getEventsByRoom', async (req, res) => {
   }
 });
 
+async function getEventsOnDay(auth, time, availableRooms) {
+  const calendar = google.calendar({ version: "v3", auth });
+  const targetDate = new Date(time);
+  const timeMin = new Date(targetDate.setHours(0, 0, 0, 0)).toISOString(); // Start of the day
+  const timeMax = new Date(targetDate.setHours(23, 59, 59, 999)).toISOString(); // End of the day
+
+  const response = await calendar.events.list({
+    calendarId: APPROVED_CALENDAR_ID,
+    singleEvents:true,
+    orderBy: 'startTime',
+    timeMin: timeMin,
+    timeMax: timeMax
+  });
+
+  const allEvents = response.data.items;
+  const merged = availableRooms.map((roomName) => {
+    const targetId = ROOM_IDS[roomName];
+    // Filter all events by mapping attendees list into list of emails and searching for targetId within this list
+    return allEvents.filter((element) => element.attendees.map((e) => e.email).includes(targetId))
+  })
+
+  return merged;
+}
+
 // Get Available Rooms and their Events
 async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   const calendar = google.calendar({ version: "v3", auth });
@@ -284,6 +308,8 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   return availableRooms;
 }
 
+
+
 router.get('/getAvailableRooms', async (req, res) => {
   const { timeMin, timeMax, excludeRooms } = req.query;
   const auth = await authorize();
@@ -291,6 +317,8 @@ router.get('/getAvailableRooms', async (req, res) => {
     const excludeRoomList = JSON.parse(excludeRooms);
     console.log(excludeRoomList);
     const availableRooms = await getAvailableRooms(auth, timeMin, timeMax, excludeRoomList);
+    const allEventsOnDay = await getEventsOnDay(auth, timeMin, availableRooms)
+    console.log(allEventsOnDay);
     res.status(200).json(availableRooms);
   } catch (error) {
     console.error(`Error fetching available rooms for time: ${timeMin} - ${timeMax}:`, error.message);
