@@ -259,6 +259,42 @@ router.get('/getEventsByRoom', async (req, res) => {
   }
 });
 
+// Get Available Rooms and their Events
+async function getAvailableRooms(auth, timeMin, timeMax) {
+  const calendar = google.calendar({ version: "v3", auth });
+
+  const requestBody = {
+    timeMin: timeMin, // ISO 8601 format
+    timeMax: timeMax, // ISO 8601 format
+    timeZone: "America/Los_Angeles",
+    items: Object.values(ROOM_IDS).map((id) => ({ id })),
+  };
+
+  const response = await calendar.freebusy.query({ requestBody });
+  const busyRooms = response.data.calendars;
+
+  // Determine available rooms
+  const availableRooms = Object.keys(roomCalendars).filter((roomName) => {
+    const calendarId = roomCalendars[roomName];
+    return busyRooms[calendarId].busy.length === 0; // Room is available if no busy times
+  });
+
+  console.log("Available Rooms:", availableRooms);
+  return availableRooms;
+}
+
+router.get('/getAvailableRooms', async (req, res) => {
+  const { timeMin, timeMax } = req.query;
+  const auth = await authorize();
+  try {
+    const availableRooms = await getAvailableRooms(auth, timeMin, timeMax);
+    res.status(200).json(availableRooms);
+  } catch (error) {
+    console.error(`Error fetching available rooms for time: ${timeMin} - ${timeMax}:`, error.message);
+    res.status(500).json({ error: 'Error fetching FreeBusy data' })
+  }
+})
+
 async function getConflicts(room, start, end, id, calendar) {
   const conflictsResponse = await calendar.events.list({
     calendarId: room,
@@ -301,18 +337,6 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 
       if (pendingEvent.recurrence) {
         // For recurring events, find all instances and check conflicts for each instance
-        /* FORMAT
-          {
-            event,
-            ...,
-            instances: [
-              {event,
-              conflicts},
-              {event,
-              conflicts},
-            ],
-          }
-        */
         const instancesResponse = await calendar.events.instances({
           calendarId: PENDING_APPROVAL_CALENDAR_ID,
           eventId: pendingEvent.id,
@@ -334,18 +358,18 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
         } else {
           separatedEvents.quickApprove.push(pendingEvent);
         }
-        
+
       } else {
         // Otherwise check conflicts for single event and add it to the event details 
         const conflicts = await roomResources.map((roomId) => getConflicts(roomId, start.dateTime, end.dateTime, pendingEvent.id, calendar)).flat();
         pendingEvent.conflicts = conflicts;
         // Place event into according list of separatedEvents
-        if ( conflicts.length > 0 ) {
+        if (conflicts.length > 0) {
           separatedEvents.conflicts.push(pendingEvent);
         } else {
           separatedEvents.quickApprove.push(pendingEvent);
         }
-        
+
       }
     }
 

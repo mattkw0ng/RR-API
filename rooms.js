@@ -28,6 +28,13 @@ async function SearchRoom(capacity, resources) {
   return(result.rows);
 }
 
+async function GetRoomDetails(roomId) {
+  const result = await pool.query(
+    `SELECT * FROM rooms WHERE room_name = $1`, [roomId]
+  );
+  return(result.rows);
+}
+
 // TEST : get room data from database
 router.get('/rooms', async (req, res) => {
   try {
@@ -67,5 +74,6 @@ router.post('/searchRoomBasic', async (req, res) => {
 
 module.exports = {
   router,
-  SearchRoom
+  SearchRoom,
+  GetRoomDetails
 };
