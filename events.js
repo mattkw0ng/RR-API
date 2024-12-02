@@ -276,7 +276,6 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   // Determine available rooms
   const availableRooms = roomList.filter((roomName) => {
     const calendarId = roomList[roomName];
-    console.log(busyRooms[calendarId].busy);
     return busyRooms[calendarId].busy.length === 0; // Room is available if no busy times
   });
 
@@ -288,9 +287,9 @@ router.get('/getAvailableRooms', async (req, res) => {
   const { timeMin, timeMax, excludeRooms } = req.query;
   const auth = await authorize();
   try {
-    console.log("exclude: ",excludeRooms);
     const excludeRoomsList = JSON.parse(excludeRooms)
     const roomList = Object.values(ROOM_IDS).filter((val) => !excludeRoomsList.includes(val));
+    console.log('roomList', roomList);
     const availableRooms = await getAvailableRooms(auth, timeMin, timeMax, roomList);
     res.status(200).json(availableRooms);
   } catch (error) {
