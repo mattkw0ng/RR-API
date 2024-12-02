@@ -271,6 +271,7 @@ async function getAvailableRooms(auth, timeMin, timeMax) {
   };
 
   const response = await calendar.freebusy.query({ requestBody });
+  console.log(response);
   const busyRooms = response.data.calendars;
 
   // Determine available rooms
