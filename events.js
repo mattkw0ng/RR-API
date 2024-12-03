@@ -222,7 +222,7 @@ router.get('/pendingEvents', async (req, res) => {
   }
 });
 
-// Get events for specific room and day
+// Get [approved, pending] events for specific room and day
 router.get('/getEventsByRoom', async (req, res) => {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
@@ -251,8 +251,18 @@ router.get('/getEventsByRoom', async (req, res) => {
       timeMax: timeMax,
     });
 
-    const events = response.data.items || [];
-    res.status(200).json(events);
+    const pendingResponse = await calendar.events.list({
+      calendarId: PENDING_APPROVAL_CALENDAR_ID,
+      singleEvents: true,
+      orderBy: 'startTime',
+      timeMin: timeMin,
+      timeMax: timeMax,
+    });
+
+    const approvedEvents = response.data.items || [];
+    // filter pending events by room
+    const pendingEvents = response.data.items.filter((e) => JSON.parse(e.extendedProperties.private.rooms).find((l) => l.email === roomId))
+    res.status(200).json([approvedEvents, pendingEvents]);
   } catch (error) {
     console.error(`Error fetching events for room "${room}":`, error.message);
     res.status(500).json({ error: 'Failed to fetch events for the specified room and time.' });
