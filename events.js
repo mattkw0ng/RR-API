@@ -261,7 +261,8 @@ router.get('/getEventsByRoom', async (req, res) => {
 
     const approvedEvents = response.data.items || [];
     // filter pending events by room
-    const pendingEvents = response.data.items.filter((e) => JSON.parse(e.extendedProperties.private.rooms).find((l) => l.email === roomId))
+    console.log(pendingResponse)
+    const pendingEvents = pendingResponse.data.items.filter((e) => JSON.parse(e.extendedProperties.private.rooms).find((l) => l.email === roomId))
     res.status(200).json([approvedEvents, pendingEvents]);
   } catch (error) {
     console.error(`Error fetching events for room "${room}":`, error.message);
