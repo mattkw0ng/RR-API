@@ -281,7 +281,7 @@ async function getEventsOnDay(auth, time, availableRooms) {
   const merged = Object.fromEntries(availableRooms.map((roomName) => {
     const targetId = ROOM_IDS[roomName];
     // Filter all events by mapping attendees list into list of emails and searching for targetId within this list
-    return [roomName, allEvents.filter((element) => element.attendees.map((e) => e.email).includes(targetId))]
+    return [roomName, {events: allEvents.filter((element) => element.attendees.map((e) => e.email).includes(targetId))}]
   }))
 
   return merged;
