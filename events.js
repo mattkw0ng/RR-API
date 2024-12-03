@@ -259,6 +259,10 @@ router.get('/getEventsByRoom', async (req, res) => {
   }
 });
 
+
+/**
+ * Get All Events on a single day, and map them to the given list of available Rooms @see /getAvailableRooms 
+ */ 
 async function getEventsOnDay(auth, time, availableRooms) {
   const calendar = google.calendar({ version: "v3", auth });
   const targetDate = new Date(time);
@@ -283,7 +287,9 @@ async function getEventsOnDay(auth, time, availableRooms) {
   return merged;
 }
 
-// Get Available Rooms and their Events
+/**
+ * Get Available Rooms and their Events @see /getAvailableRooms
+ */
 async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   const calendar = google.calendar({ version: "v3", auth });
 
@@ -308,8 +314,18 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   return availableRooms;
 }
 
+async function mapToRoomDetails(availableRooms) {
+  console.log("Getting Room Details");
+  for (room of availableRooms) {
+    const res = await roomsTools.GetRoomDetails(room);
+    console.log(res);
+  }
+}
 
-
+/**
+ * @description given a start and end time, and a list of rooms to exclude, provide a list of rooms that are available in this time window @see getAvailableRooms mapped to a list of events @see getEventsOnDay and basic room resource details
+ * @type route
+ */
 router.get('/getAvailableRooms', async (req, res) => {
   const { timeMin, timeMax, excludeRooms } = req.query;
   const auth = await authorize();
@@ -317,7 +333,8 @@ router.get('/getAvailableRooms', async (req, res) => {
     const excludeRoomList = JSON.parse(excludeRooms);
     console.log(excludeRoomList);
     const availableRooms = await getAvailableRooms(auth, timeMin, timeMax, excludeRoomList);
-    const allEventsOnDay = await getEventsOnDay(auth, timeMin, availableRooms)
+    const allEventsOnDay = await getEventsOnDay(auth, timeMin, availableRooms);
+    mapToRoomDetails(availableRooms);
     console.log(allEventsOnDay);
     res.status(200).json(allEventsOnDay);
   } catch (error) {
