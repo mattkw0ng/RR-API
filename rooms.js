@@ -32,7 +32,7 @@ async function GetRoomDetails(roomId) {
   const result = await pool.query(
     `SELECT * FROM rooms WHERE room_name = $1`, [roomId]
   );
-  return(result.rows);
+  return(result.rows[0]);
 }
 
 // TEST : get room data from database

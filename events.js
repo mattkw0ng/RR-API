@@ -314,12 +314,13 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   return availableRooms;
 }
 
-async function mapToRoomDetails(availableRooms) {
+async function mapToRoomDetails(availableRooms, allEvents) {
   console.log("Getting Room Details");
   for (room of availableRooms) {
     const res = await roomsTools.GetRoomDetails(room);
-    console.log(res);
+    allEvents[room].details = res;
   }
+  return allEvents
 }
 
 /**
@@ -334,9 +335,9 @@ router.get('/getAvailableRooms', async (req, res) => {
     console.log(excludeRoomList);
     const availableRooms = await getAvailableRooms(auth, timeMin, timeMax, excludeRoomList);
     const allEventsOnDay = await getEventsOnDay(auth, timeMin, availableRooms);
-    mapToRoomDetails(availableRooms);
-    console.log(allEventsOnDay);
-    res.status(200).json(allEventsOnDay);
+    const allEventsWithRoomDetails = await mapToRoomDetails(availableRooms, allEventsOnDay);
+    console.log(allEventsWithRoomDetails);
+    res.status(200).json(allEventsWithRoomDetails);
   } catch (error) {
     console.error(`Error fetching available rooms for time: ${timeMin} - ${timeMax}:`, error.message);
     res.status(500).json({ error: 'Error fetching FreeBusy data' })
