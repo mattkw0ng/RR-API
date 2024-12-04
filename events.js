@@ -380,6 +380,21 @@ async function getConflicts(room, start, end, id, calendar) {
   return conflicts
 }
 
+async function getConflictsSimple(calendar, roomList, start, end) {
+  const requestBody = {
+    timeMin: start,
+    timeMax: end,
+    timeZone: 'America/Los_Angeles',
+    items: roomList
+  }
+
+  const response = calendar.freebusy.query({ requestBody });
+  console.log(response.data.calendars);
+
+  const filtered = Object.entries(response.data.calendars).map((pair) => pair[1].busy.length > 0 && {'roomId': pair[0], 'times': pair[1].busy })
+  return filtered;
+}
+
 // Get all events under Pending calendar with conflict detection and flagging (ADMIN PAGE)
 router.get('/pendingEventsWithConflicts', async (req, res) => {
   try {
@@ -417,7 +432,8 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
         const instancesElaborated = [];
         let isConflict = false;
         for (const instance of instances) {
-          const conflicts = await roomResources.map((roomId) => getConflicts(roomId, instance.start.dateTime, instance.end.dateTime, instance.id, calendar)).flat();
+          // const conflicts = await roomResources.map((roomId) => getConflicts(roomId, instance.start.dateTime, instance.end.dateTime, instance.id, calendar)).flat();
+          const conflicts = await getConflictsSimple(calendar, roomResources, instance.start.dateTime, instance.end.dateTime); // returns list [[calendarId, ]]
           isConflict = isConflict || conflicts.length > 0; //update isconflict to be true if there are conflicts
           instance.conflicts = conflicts;
           instancesElaborated.push(instance);
@@ -432,7 +448,8 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 
       } else {
         // Otherwise check conflicts for single event and add it to the event details 
-        const conflicts = await roomResources.map((roomId) => getConflicts(roomId, start.dateTime, end.dateTime, pendingEvent.id, calendar)).flat();
+        // const conflicts = await roomResources.map((roomId) => getConflicts(roomId, start.dateTime, end.dateTime, pendingEvent.id, calendar)).flat();
+        const conflicts = await getConflictsSimple(calendar, roomResources, start.dateTime, end.dateTime);
         pendingEvent.conflicts = conflicts;
         // Place event into according list of separatedEvents
         if (conflicts.length > 0) {
