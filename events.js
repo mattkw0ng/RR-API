@@ -392,7 +392,7 @@ async function getConflictsSimple(calendar, roomList, start, end) {
   console.log(response.data.calendars);
 
   const filtered = Object.entries(response.data.calendars).map((pair) => pair[1].busy.length > 0 & {'roomId': pair[0], 'times': pair[1].busy })
-  console.log(filtered);
+  console.log(Object.entries(response.data.calendars));
   return filtered;
 }
 
