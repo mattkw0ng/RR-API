@@ -314,7 +314,7 @@ async function getEventsOnDay(auth, time, availableRooms) {
  */
 async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   const calendar = google.calendar({ version: "v3", auth });
-
+  console.log(Object.values(ROOM_IDS).map((id) => ({ id })));
   const requestBody = {
     timeMin: timeMin, // ISO 8601 format
     timeMax: timeMax, // ISO 8601 format
@@ -323,7 +323,6 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   };
 
   const response = await calendar.freebusy.query({ requestBody });
-  console.log(response);
   const busyRooms = response.data.calendars;
 
   // Determine available rooms
