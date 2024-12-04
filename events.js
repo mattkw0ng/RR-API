@@ -381,6 +381,7 @@ async function getConflicts(room, start, end, id, calendar) {
 }
 
 async function getConflictsSimple(calendar, roomList, start, end) {
+  console.log("getConflictsSimple")
   const requestBody = {
     timeMin: start,
     timeMax: end,
