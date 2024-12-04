@@ -390,7 +390,7 @@ async function getConflictsSimple(calendar, roomList, start, end) {
   }
 
   const response = calendar.freebusy.query({ requestBody });
-  console.log(response.data.calendars);
+  console.log(response.data);
 
   const filtered = Object.entries(response.data.calendars).map((pair) => pair[1].busy.length > 0 && {'roomId': pair[0], 'times': pair[1].busy })
   return filtered;
