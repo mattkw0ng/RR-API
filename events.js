@@ -327,11 +327,11 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   // Determine available rooms
   const availableRooms = Object.keys(ROOM_IDS).filter((roomName) => {
     const calendarId = ROOM_IDS[roomName];
-    console.log(busyRooms[calendarId].busy);
+    // console.log(busyRooms[calendarId].busy);
     return !roomList.includes(roomName) & busyRooms[calendarId].busy.length === 0; // Room is available if no busy times
   });
 
-  console.log("Available Rooms:", availableRooms);
+  // console.log("Available Rooms:", availableRooms);
   return availableRooms;
 }
 
@@ -356,7 +356,7 @@ router.get('/getAvailableRooms', async (req, res) => {
     const availableRooms = await getAvailableRooms(auth, timeMin, timeMax, excludeRooms);
     const allEventsOnDay = await getEventsOnDay(auth, timeMin, availableRooms);
     const allEventsWithRoomDetails = await mapToRoomDetails(availableRooms, allEventsOnDay);
-    console.log(allEventsWithRoomDetails);
+    // console.log(allEventsWithRoomDetails);
     res.status(200).json(allEventsWithRoomDetails);
   } catch (error) {
     console.error(`Error fetching available rooms for time: ${timeMin} - ${timeMax}:`, error.message);
