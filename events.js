@@ -350,6 +350,7 @@ async function mapToRoomDetails(availableRooms, allEvents) {
  */
 router.get('/getAvailableRooms', async (req, res) => {
   const { timeMin, timeMax, excludeRooms } = req.query;
+  console.log(req.query);
   const auth = await authorize();
   try {
     const excludeRoomList = JSON.parse(excludeRooms);
