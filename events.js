@@ -353,9 +353,7 @@ router.get('/getAvailableRooms', async (req, res) => {
   console.log(req.query);
   const auth = await authorize();
   try {
-    const excludeRoomList = JSON.parse(excludeRooms);
-    console.log(excludeRoomList);
-    const availableRooms = await getAvailableRooms(auth, timeMin, timeMax, excludeRoomList);
+    const availableRooms = await getAvailableRooms(auth, timeMin, timeMax, excludeRooms);
     const allEventsOnDay = await getEventsOnDay(auth, timeMin, availableRooms);
     const allEventsWithRoomDetails = await mapToRoomDetails(availableRooms, allEventsOnDay);
     console.log(allEventsWithRoomDetails);
