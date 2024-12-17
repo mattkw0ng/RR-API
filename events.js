@@ -645,6 +645,7 @@ router.post('/editEvent', async (req, res) => {
   const { event, timeOrRoomChanged } = req.body;
 
   if (!event || typeof timeOrRoomChanged === 'undefined') {
+    console.log("Bad Request", req.body);
     return res.status(400).json({ error: "Invalid request. Event data and 'timeOrRoomChanged' flag are required." });
   }
 
