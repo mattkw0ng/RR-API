@@ -8,6 +8,7 @@ const CREDENTIALS_PATH = path.join(__dirname, 'json/credentials.json');
 const TOKEN_PATH = path.join(__dirname, 'json/token.json');
 const PENDING_APPROVAL_CALENDAR_ID = "c_0430068aa84472bdb1aa16b35d4061cd867e4888a8ace5fa3d830bb67587dfad@group.calendar.google.com";
 const APPROVED_CALENDAR_ID = 'c_8f9a221bd12882ccda21c5fb81effbad778854cc940c855b25086414babb1079@group.calendar.google.com';
+const PROPOSED_CHANGES_CALENDAR_ID = 'c_8c14557969e2203d3eb811d73ac3add1abd73e45a9c337441b2b4aa95a141786@group.calendar.google.com';
 const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 
@@ -606,6 +607,74 @@ router.post('/approveEvent', async (req, res) => {
   } catch (error) {
     console.error('Error approving event:', error);
     res.status(500).send('Error approving event: ' + error.message);
+  }
+});
+
+// Function to move an event to the Proposed Changes calendar
+const moveToProposedChangesCalendar = async (auth, event) => {
+  const calendar = google.calendar({ version: "v3", auth });
+
+  // Create a new event in the Proposed Changes calendar
+  const proposedEvent = {
+    ...event,
+    attendees: event.attendees || [],
+    extendedProperties: {
+      ...event.extendedProperties,
+      private: {
+        ...event.extendedProperties?.private,
+        originalCalendarID: event.organizer.email, // Track the original calendar ID
+        originalEventID: event.id, // Track the original event ID
+      },
+    },
+  };
+
+  // Remove unnecessary fields
+  delete proposedEvent.id;
+  delete proposedEvent.etag;
+
+  const createdEvent = await calendar.events.insert({
+    calendarId: PROPOSED_CHANGES_CALENDAR_ID,
+    requestBody: proposedEvent,
+  });
+
+  return createdEvent.data;
+};
+
+// Route to edit an event
+router.post('/editEvent', async (req, res) => {
+  const { event, timeOrRoomChanged } = req.body;
+
+  if (!event || typeof timeOrRoomChanged === 'undefined') {
+    return res.status(400).json({ error: "Invalid request. Event data and 'timeOrRoomChanged' flag are required." });
+  }
+
+  try {
+    const auth = await authorize();
+    const calendar = google.calendar({ version: "v3", auth });
+
+    if (timeOrRoomChanged) {
+      // Move to Proposed Changes calendar
+      const newEvent = await moveToProposedChangesCalendar(auth, event);
+      return res.status(200).json({
+        message: "Event moved to Proposed Changes calendar for approval.",
+        newEvent,
+      });
+    } else {
+      // Directly update the event in its current calendar
+      const updatedEvent = await calendar.events.update({
+        calendarId: event.organizer.email,
+        eventId: event.id,
+        requestBody: event,
+      });
+
+      return res.status(200).json({
+        message: "Event updated successfully.",
+        updatedEvent: updatedEvent.data,
+      });
+    }
+  } catch (error) {
+    console.error("Error updating event:", error);
+    return res.status(500).json({ error: "Failed to update event." });
   }
 });
 
