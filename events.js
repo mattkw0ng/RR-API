@@ -584,7 +584,7 @@ router.post('/approveEvent', async (req, res) => {
 
     const event = eventResponse.data;
     // attatch room to event as an attendee
-    event.attendees.push(...JSON.parse(event.extendedProperties.rooms))
+    event.attendees.push(...JSON.parse(event.extendedProperties.private.rooms))
 
     console.log("++ Approve Events event data:", event);
 
