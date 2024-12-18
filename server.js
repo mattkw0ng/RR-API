@@ -126,6 +126,11 @@ app.get('/test', async (req, res) => {
   res.send("Hello World!!");
 })
 
+app.use((req, res) => {
+  console.warn(`Blocked request to undefined path: ${req.method} ${req.originalUrl}`);
+  res.status(403).send('Forbidden: This path is not allowed.');
+});
+
 app.listen(PORT, () => {
   authorize();
   console.log(`\nServer running on http://3.20.203.208:${PORT}`);
