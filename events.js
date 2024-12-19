@@ -630,6 +630,11 @@ const approveEvent = async (eventId, calendar, fromCalendarId) => {
     calendarId: APPROVED_CALENDAR_ID,
     resource: event,
   });
+
+  calendar.event.delete({
+    calendarId: fromCalendarId,
+    eventId: eventId,
+  })
 }
 
 // Move event from the "Pending approval" Calendar to the "approved" Calendar
