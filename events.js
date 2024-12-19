@@ -424,7 +424,7 @@ async function getConflictsSimple(calendar, roomList, start, end) {
 }
 
 router.get('/checkConflicts', async (req, res) => {
-  const { startDateTime, endDateTime, roomList } = req.body;
+  const { startDateTime, endDateTime, roomList } = req.query;
 
   if (!startDateTime || !endDateTime || !roomList) {
     res.status(400).send("Missing required fields");
