@@ -419,7 +419,7 @@ async function getConflictsSimple(calendar, roomList, start, end) {
 
   // filter the response by rooms that are busy (aka list of conflicts > 0) then map to an array of objects {roomId: String , times: Array}
   const filtered = Object.entries(response.data.calendars).filter((pair) => pair[1].busy.length > 0).map((pair) => ({ 'roomId': pair[0], 'times': pair[1].busy }));
-  console.log(filtered);
+  console.log(JSON.stringify(filtered));
   return filtered;
 }
 
