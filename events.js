@@ -425,6 +425,7 @@ async function getConflictsSimple(calendar, roomList, start, end) {
 
 router.get('/checkConflicts', async (req, res) => {
   const { startDateTime, endDateTime, roomList } = req.query;
+  console.log(req.query)
 
   if (!startDateTime || !endDateTime || !roomList) {
     res.status(400).send("Missing required fields");
@@ -434,7 +435,7 @@ router.get('/checkConflicts', async (req, res) => {
     const auth = await authorize();
     const calendar = google.calendar({version: 'v3', auth})
 
-    const conflicts = await getConflictsSimple(calendar, roomList, startDateTime, endDateTime);
+    const conflicts = await getConflictsSimple(calendar, JSON.parse(roomList), startDateTime, endDateTime);
 
     res.send(200).json(conflicts);
   } catch (error) {
