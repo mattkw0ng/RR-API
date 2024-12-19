@@ -437,7 +437,7 @@ router.get('/checkConflicts', async (req, res) => {
 
     const conflicts = await getConflictsSimple(calendar, JSON.parse(roomList), startDateTime, endDateTime);
 
-    res.send(200).json(conflicts);
+    res.status(200).json(conflicts);
   } catch (error) {
     console.error('Error checking conflicts for event: ', startDateTime, endDateTime, roomList, error);
     res.status(500).send('Error checking conflicts for event: ', startDateTime, endDateTime, roomList, error)
