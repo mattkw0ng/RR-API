@@ -619,7 +619,7 @@ router.post('/addEventWithRooms', async (req, res) => {
   }
 });
 
-
+// Phased out : see moveAndUpdateEvent()
 const approveEvent = async (eventId, calendar, fromCalendarId) => {
   // Retrieve the event details from the "Pending approval" calendar
   const eventResponse = await calendar.events.get({
@@ -650,6 +650,37 @@ const approveEvent = async (eventId, calendar, fromCalendarId) => {
   })
 }
 
+// New Approval Method
+const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCalendarId, edits={}) => {
+  try {
+    // Step 1: Move the event to the target calendar
+    const movedEvent = await calendar.events.move({
+      calendarId: sourceCalendarId,
+      eventId,
+      destination: targetCalendarId,
+    });
+
+    console.log(`Event moved: ${movedEvent.data.id}`);
+    movedEvent.data.attendees.push(...JSON.parse(movedEvent.data.extendedProperties.private.rooms))
+
+    // Step 2: Update the event in the target calendar
+    const updatedEvent = await calendar.events.update({
+      calendarId: targetCalendarId,
+      eventId: movedEvent.data.id,
+      requestBody: {
+        ...movedEvent.data, //merge new event and edits
+        ...edits
+      },
+    });
+
+    console.log(`Event updated: ${updatedEvent.data.id}`);
+    return updatedEvent.data;
+  } catch (error) {
+    console.error("Error moving or updating event:", error);
+    throw error;
+  }
+}
+
 // Move event from the "Pending approval" Calendar to the "approved" Calendar
 router.post('/approveEvent', async (req, res) => {
   const { eventId } = req.body;
@@ -663,7 +694,7 @@ router.post('/approveEvent', async (req, res) => {
     const calendar = google.calendar({ version: 'v3', auth });
 
     // Retrieve the event details from the "Pending approval" calendar
-    await approveEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID);
+    await moveAndUpdateEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID);
 
 
     res.status(200).send('Event approved');
@@ -708,7 +739,7 @@ router.post('/acceptProposedChanges', async(req, res) => {
     const auth = await authorize();
     const calendar = google.calendar({version: 'v3', auth});
 
-    await approveEvent(eventId, calendar, PROPOSED_CHANGES_CALENDAR_ID);
+    await moveAndUpdateEvent(eventId, calendar, PROPOSED_CHANGES_CALENDAR_ID, APPROVED_CALENDAR_ID);
 
     res.status(200).send('Proposed Changes have been Accepted')
   } catch (error) {
@@ -736,21 +767,9 @@ const moveToProposedChangesCalendar = async (auth, event) => {
   };
 
   // Remove unnecessary fields
-  delete proposedEvent.id;
-  delete proposedEvent.etag;
+  const editedEvent = await moveAndUpdateEvent(event.id, calendar, APPROVED_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID, proposedEvent)
 
-  const createdEvent = await calendar.events.insert({
-    calendarId: PROPOSED_CHANGES_CALENDAR_ID,
-    requestBody: proposedEvent,
-  });
-
-  // delete from approved calendar
-  calendar.events.delete({
-    calendarId: APPROVED_CALENDAR_ID,
-    eventId: event.id
-  })
-
-  return createdEvent.data;
+  return editedEvent;
 };
 
 // Edit an Event (Either updates the event or moves to proposedChanges calendar for another round of approval)
