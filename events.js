@@ -217,7 +217,7 @@ router.get('/proposedChangesEvents', async (req, res) => {
       singleEvents: true,
       orderBy: 'startTime',
     });
-
+    console.log(response.data.items);
     res.status(200).json(response.data.items);
   } catch (error) {
     console.error('Error fetching approved events:', error.message);
