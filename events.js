@@ -630,7 +630,8 @@ const approveEvent = async (eventId, calendar, fromCalendarId) => {
   const event = eventResponse.data;
 
   if (fromCalendarId === PROPOSED_CHANGES_CALENDAR_ID) {
-    event.id = null;
+    delete event.id;
+    delete event.etag;
   }
   // attatch room to event as an attendee
   event.attendees.push(...JSON.parse(event.extendedProperties.private.rooms))
