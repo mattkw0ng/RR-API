@@ -631,7 +631,7 @@ const approveEvent = async (eventId, calendar, fromCalendarId) => {
     resource: event,
   });
 
-  calendar.event.delete({
+  calendar.events.delete({
     calendarId: fromCalendarId,
     eventId: eventId,
   })
@@ -704,7 +704,7 @@ router.post('/acceptProposedChanges', async(req, res) => {
   }
 })
 
-// Function to move an event to the Proposed Changes calendar
+// Function to move an event to the Proposed Changes calendar (from Approved calendar)
 const moveToProposedChangesCalendar = async (auth, event) => {
   const calendar = google.calendar({ version: "v3", auth });
 
@@ -730,6 +730,12 @@ const moveToProposedChangesCalendar = async (auth, event) => {
     calendarId: PROPOSED_CHANGES_CALENDAR_ID,
     requestBody: proposedEvent,
   });
+
+  // delete from approved calendar
+  calendar.events.delete({
+    calendarId: APPROVED_CALENDAR_ID,
+    eventId: event.id
+  })
 
   return createdEvent.data;
 };
