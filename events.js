@@ -749,7 +749,7 @@ router.post('/acceptProposedChanges', async(req, res) => {
 })
 
 // Function to move an event to the Proposed Changes calendar (from Approved calendar)
-const moveToProposedChangesCalendar = async (auth, event) => {
+const moveToProposedChangesCalendar = async (auth, event, needAdminApproval=true) => {
   const calendar = google.calendar({ version: "v3", auth });
 
   // Create a new event in the Proposed Changes calendar
@@ -762,20 +762,21 @@ const moveToProposedChangesCalendar = async (auth, event) => {
         ...event.extendedProperties?.private,
         originalCalendarID: event.organizer.email, // Track the original calendar ID
         originalEventID: event.id, // Track the original event ID
+        adminApproval: needAdminApproval, // Mark this event as needing approval by Admin
       },
     },
   };
 
   // Remove unnecessary fields
-  const editedEvent = await moveAndUpdateEvent(event.id, calendar, APPROVED_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID, proposedEvent)
+  const editedEvent = await moveAndUpdateEvent(event.id, calendar, needAdminApproval ? APPROVED_CALENDAR_ID : PENDING_APPROVAL_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID, proposedEvent)
 
   return editedEvent;
 };
 
 // Edit an Event (Either updates the event or moves to proposedChanges calendar for another round of approval)
 router.post('/editEvent', async (req, res) => {
-  const { event, timeOrRoomChanged } = req.body;
-
+  const { event, timeOrRoomChanged, adminEdit } = req.body;
+  const needAdminApproval = !adminEdit; // if admin submitted these edits, the approval process should go back to the user
   if (!event || typeof timeOrRoomChanged === 'undefined') {
     console.log("Bad Request", req.body);
     return res.status(400).json({ error: "Invalid request. Event data and 'timeOrRoomChanged' flag are required." });
@@ -787,7 +788,7 @@ router.post('/editEvent', async (req, res) => {
 
     if (timeOrRoomChanged) {
       // Move to Proposed Changes calendar
-      const newEvent = await moveToProposedChangesCalendar(auth, event);
+      const newEvent = await moveToProposedChangesCalendar(auth, event, needAdminApproval);
       return res.status(200).json({
         message: "Event moved to Proposed Changes calendar for approval.",
         newEvent,
