@@ -203,6 +203,8 @@ router.get('/approvedEvents', async (req, res) => {
 // Fetch Proposed Changes events
 router.get('/proposedChangesEvents', async (req, res) => {
   try {
+    const { isUser } = req.query; // if left out, default is false aka is Admin
+
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
@@ -219,7 +221,7 @@ router.get('/proposedChangesEvents', async (req, res) => {
     });
     console.log(response.data.items);
 
-    const events = response.data.items;
+    const events = response.data.items.filter((e) => e.extendedProperties.private.adminApproval === !isUser); // Filter by needsAdminApproval
 
     // Parse rooms string for every item
     for (e of events) {
@@ -661,7 +663,11 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
     });
 
     console.log(`Event moved: ${movedEvent.data.id}`);
-    movedEvent.data.attendees.push(...JSON.parse(movedEvent.data.extendedProperties.private.rooms))
+    // If Event is being Approved, make sure to add the rooms to the attendees property
+    if (targetCalendarId === APPROVED_CALENDAR_ID) {
+      movedEvent.data.attendees.push(...JSON.parse(movedEvent.data.extendedProperties.private.rooms));
+    }
+    
 
     // Step 2: Update the event in the target calendar
     const updatedEvent = await calendar.events.update({
@@ -762,7 +768,7 @@ const moveToProposedChangesCalendar = async (auth, event, needAdminApproval=true
         ...event.extendedProperties?.private,
         originalCalendarID: event.organizer.email, // Track the original calendar ID
         originalEventID: event.id, // Track the original event ID
-        adminApproval: needAdminApproval, // Mark this event as needing approval by Admin
+        adminApproval: needAdminApproval, // Mark this event as needing approval by Admin (AKA TRUE: this event should show up on the Admin Page || FALSE: User Profile Page )
       },
     },
   };
