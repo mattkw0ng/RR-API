@@ -224,12 +224,9 @@ router.get('/proposedChangesEvents', async (req, res) => {
 
     const events = response.data.items.filter((e) => e.extendedProperties.private.adminApproval === !isUser); // Filter by needsAdminApproval
 
-    // Parse rooms string for every item
-    for (e of events) {
-      e.extendedProperties.private.rooms = JSON.parse(e.extendedProperties.private.rooms);
-    }
-    console.log("Parsed Proposed Events", events);
-    res.status(200).json(events);
+    const parsedEvents = events.map((event) => unpackExtendedProperties(event));
+    console.log("Parsed Proposed Events", parsedEvents);
+    res.status(200).json(parsedEvents);
   } catch (error) {
     console.error('Error fetching approved events:', error.message);
     res.status(500).send('Error fetching approved events: ' + error.message);
@@ -252,7 +249,9 @@ router.get('/pendingEvents', async (req, res) => {
       singleEvents: false, // display recurring events as a single event
     });
 
-    res.status(200).json(response.data.items);
+    const parsedEvents = response.data.items.map((event) => unpackExtendedProperties(event));
+
+    res.status(200).json(parsedEvents);
   } catch (error) {
     console.error('Error fetching pending events:', error.message);
     res.status(500).send('Error fetching pending events: ' + error.message);
