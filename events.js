@@ -3,7 +3,8 @@ const { google } = require('googleapis');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const roomsTools = require('./rooms')
+const roomsTools = require('./rooms');
+const { unpackExtendedProperties } = require('./util');
 const CREDENTIALS_PATH = path.join(__dirname, 'json/credentials.json');
 const TOKEN_PATH = path.join(__dirname, 'json/token.json');
 const PENDING_APPROVAL_CALENDAR_ID = "c_0430068aa84472bdb1aa16b35d4061cd867e4888a8ace5fa3d830bb67587dfad@group.calendar.google.com";
@@ -130,7 +131,7 @@ async function getUserEvents(calendar, calendarId, userEmail) {
     event.attendees && event.attendees.some(attendee => attendee.email === userEmail && !event.extendedProperties.private.adminApproval)
   );
 
-  return events
+  return events.map((event) => unpackExtendedProperties(event))
 }
 
 // Usage example in your route
