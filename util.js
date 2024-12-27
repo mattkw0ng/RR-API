@@ -1,4 +1,4 @@
-export function unpackExtendedProperties(event) {
+function unpackExtendedProperties(event) {
   if (!event.extendedProperties || !event.extendedProperties.private) {
     return event; // Return the event unchanged if no extendedProperties are found
   }
@@ -32,3 +32,5 @@ export function unpackExtendedProperties(event) {
     },
   };
 }
+
+module.exports = {unpackExtendedProperties};
