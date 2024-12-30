@@ -45,7 +45,14 @@ async function authorizeUser(email) {
 
 
 // Google OAuth routes
-router.get('/auth/google',
+router.get('/auth/google', (req, res, next) => {
+  const { returnPath } = req.query; // e.g., ?returnPath=/reservation-form
+  if (returnPath) {
+    req.session.returnPath = returnPath;
+  }
+
+  next();
+},
   passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: CLIENT_URL + '/login' }), // Redirect to React router's login page on failure
@@ -53,9 +60,11 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
     console.log('=======get /auth/google/callback======= session before\n', req.sessionID, req.session)
     req.session.token = req.user.token; // probably unncessary
     req.session.user = req.user;
+    const returnPath = req.session.returnPath || "/";
+    delete req.session.returnPath;
     // console.log('=======get /auth/google/callback======= req.user \n', req.user);
-    console.log('=======get /auth/google/callback======= session after\n', req.sessionID, req.session);
-    res.redirect(CLIENT_URL + '/'); // Redirect to React router's home page on success
+    console.log('=======get /auth/google/callback======= session after\n', req.sessionID, req.session, returnPath);
+    res.redirect(CLIENT_URL + returnPath); // Redirect to React router's home page on success
   });
 
 // router.post('/auth/google/callback', async (req, res) => {
