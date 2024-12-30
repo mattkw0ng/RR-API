@@ -148,7 +148,10 @@ router.get('/userEvents', async (req, res) => {
     const pendingEvents = await getUserEvents(calendar, PENDING_APPROVAL_CALENDAR_ID, userEmail);
     const approvedEvents = await getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail);
     const proposedEvents = await getUserEvents(calendar, PROPOSED_CHANGES_CALENDAR_ID, userEmail);
-    const result = { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed':proposedEvents };
+
+    const result = (pendingEvents.length != 0 && approvedEvents.length != 0 && proposedEvents.length != 0)
+      ? { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed': proposedEvents }
+      : null;
 
     // console.log("++ /userEvents events:", events);
     res.status(200).json(result);
@@ -440,10 +443,10 @@ router.get('/checkConflicts', async (req, res) => {
   if (!startDateTime || !endDateTime || !roomList) {
     res.status(400).send("Missing required fields");
   }
-  
+
   try {
     const auth = await authorize();
-    const calendar = google.calendar({version: 'v3', auth})
+    const calendar = google.calendar({ version: 'v3', auth })
 
     const conflicts = await getConflictsSimple(calendar, JSON.parse(roomList), startDateTime, endDateTime);
 
@@ -653,7 +656,7 @@ const approveEvent = async (eventId, calendar, fromCalendarId) => {
 }
 
 // New Approval Method
-const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCalendarId, edits={}) => {
+const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCalendarId, edits = {}) => {
   try {
     // Step 1: Move the event to the target calendar
     const movedEvent = await calendar.events.move({
@@ -667,7 +670,7 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
     if (targetCalendarId === APPROVED_CALENDAR_ID) {
       movedEvent.data.attendees.push(...JSON.parse(movedEvent.data.extendedProperties.private.rooms));
     }
-    
+
 
     // Step 2: Update the event in the target calendar
     const updatedEvent = await calendar.events.update({
@@ -711,7 +714,7 @@ router.post('/approveEvent', async (req, res) => {
 });
 
 // Quickly Approve a list of events
-router.post('/quickApprove', async(req, res) => {
+router.post('/quickApprove', async (req, res) => {
   const { eventIdList } = req.body;
 
   if (!eventIdList || eventIdList.length === 0) {
@@ -720,7 +723,7 @@ router.post('/quickApprove', async(req, res) => {
 
   try {
     const auth = await authorize();
-    const calendar = google.calendar({version: 'v3', auth});
+    const calendar = google.calendar({ version: 'v3', auth });
 
     for (eventId of eventIdList) {
       await approveEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID);
@@ -734,7 +737,7 @@ router.post('/quickApprove', async(req, res) => {
 })
 
 // Accept Proposed Changes (AKA previously approved events that have changed dates/times or rooms)
-router.post('/acceptProposedChanges', async(req, res) => {
+router.post('/acceptProposedChanges', async (req, res) => {
   const { eventId } = req.body;
 
   if (!eventId) {
@@ -743,7 +746,7 @@ router.post('/acceptProposedChanges', async(req, res) => {
 
   try {
     const auth = await authorize();
-    const calendar = google.calendar({version: 'v3', auth});
+    const calendar = google.calendar({ version: 'v3', auth });
 
     await moveAndUpdateEvent(eventId, calendar, PROPOSED_CHANGES_CALENDAR_ID, APPROVED_CALENDAR_ID);
 
@@ -755,7 +758,7 @@ router.post('/acceptProposedChanges', async(req, res) => {
 })
 
 // Function to move an event to the Proposed Changes calendar (from Approved calendar)
-const moveToProposedChangesCalendar = async (auth, event, needAdminApproval=true) => {
+const moveToProposedChangesCalendar = async (auth, event, needAdminApproval = true) => {
   const calendar = google.calendar({ version: "v3", auth });
 
   // Create a new event in the Proposed Changes calendar
