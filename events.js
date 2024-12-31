@@ -666,20 +666,28 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
     });
 
     console.log(`Event moved: ${movedEvent.data.id}`);
-    // If Event is being Approved, make sure to add the rooms to the attendees property
+
+    // Step 2: Prepare a clean update payload
+    const updatedRequestBody = {
+      summary: movedEvent.data.summary, // Keep the title
+      description: movedEvent.data.description, // Keep the description
+      start: movedEvent.data.start, // Preserve the start time
+      end: movedEvent.data.end, // Preserve the end time
+      extendedProperties: movedEvent.data.extendedProperties || {}, // Preserve extended properties
+      ...edits, // Apply any additional edits
+    };
+
+    // If moving to the Approved calendar, handle attendees specifically
     if (targetCalendarId === APPROVED_CALENDAR_ID) {
-      movedEvent.data.attendees.push(...JSON.parse(movedEvent.data.extendedProperties.private.rooms));
+      const roomAttendees = JSON.parse(movedEvent.data.extendedProperties?.private?.rooms || "[]");
+      updatedRequestBody.attendees = [...(movedEvent.data.attendees || []), ...roomAttendees];
     }
 
-
-    // Step 2: Update the event in the target calendar
+    // Step 3: Update the event in the target calendar
     const updatedEvent = await calendar.events.update({
       calendarId: targetCalendarId,
       eventId: movedEvent.data.id,
-      requestBody: {
-        ...movedEvent.data, //merge new event and edits
-        ...edits
-      },
+      requestBody: updatedRequestBody,
     });
 
     console.log(`Event updated: ${updatedEvent.data.id}`);
@@ -688,7 +696,7 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
     console.error("Error moving or updating event:", error);
     throw error;
   }
-}
+};
 
 // Move event from the "Pending approval" Calendar to the "approved" Calendar
 router.post('/approveEvent', async (req, res) => {
