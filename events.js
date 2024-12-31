@@ -128,7 +128,7 @@ async function getUserEvents(calendar, calendarId, userEmail) {
   // console.log('++ /userEvents response', response)
   // Filter the events by matching the user's email in the attendees
   const events = response.data.items.filter(event =>
-    event.attendees && event.attendees.some(attendee => attendee.email === userEmail && !event.extendedProperties.private.adminApproval)
+    event.attendees && event.attendees.some(attendee => attendee.email === userEmail)
   );
 
   return events.map((event) => unpackExtendedProperties(event))
