@@ -667,36 +667,32 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
 
     console.log(`Event moved: ${movedEvent.data.id}`);
 
-    // Step 2: Prepare a clean update payload
-    const updatedRequestBody = {
-      summary: movedEvent.data.summary, // Keep the title
-      description: movedEvent.data.description, // Keep the description
-      start: movedEvent.data.start, // Preserve the start time
-      end: movedEvent.data.end, // Preserve the end time
-      extendedProperties: movedEvent.data.extendedProperties || {}, // Preserve extended properties
-      ...edits, // Apply any additional edits
+    // Step 2: Prepare the patch request body
+    const patchRequestBody = {
+      ...edits, // Apply only the specific fields to be updated
     };
 
     // If moving to the Approved calendar, handle attendees specifically
     if (targetCalendarId === APPROVED_CALENDAR_ID) {
       const roomAttendees = JSON.parse(movedEvent.data.extendedProperties?.private?.rooms || "[]");
-      updatedRequestBody.attendees = [...(movedEvent.data.attendees || []), ...roomAttendees];
+      patchRequestBody.attendees = [...(movedEvent.data.attendees || []), ...roomAttendees];
     }
 
-    // Step 3: Update the event in the target calendar
-    const updatedEvent = await calendar.events.update({
+    // Step 3: Patch the event in the target calendar
+    const patchedEvent = await calendar.events.patch({
       calendarId: targetCalendarId,
       eventId: movedEvent.data.id,
-      requestBody: updatedRequestBody,
+      requestBody: patchRequestBody,
     });
 
-    console.log(`Event updated: ${updatedEvent.data.id}`);
-    return updatedEvent.data;
+    console.log(`Event patched: ${patchedEvent.data.id}`);
+    return patchedEvent.data;
   } catch (error) {
-    console.error("Error moving or updating event:", error);
+    console.error("Error moving or patching event:", error);
     throw error;
   }
 };
+
 
 // Move event from the "Pending approval" Calendar to the "approved" Calendar
 router.post('/approveEvent', async (req, res) => {
