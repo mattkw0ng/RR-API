@@ -224,6 +224,10 @@ router.get('/proposedChangesEvents', async (req, res) => {
       orderBy: 'startTime',
     });
     console.log(response.data.items);
+    console.log("something is wrong here")
+    for (const item of response.data.items) {
+      console.log(item.extendedProperties);
+    }
 
     const events = response.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === !isUser); // Filter by needsAdminApproval
     console.log("> events after filtering",events);
