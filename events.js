@@ -703,10 +703,10 @@ router.post('/approveEvent', async (req, res) => {
     const calendar = google.calendar({ version: 'v3', auth });
 
     // Retrieve the event details from the "Pending approval" calendar
-    await moveAndUpdateEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID);
+    const data = await moveAndUpdateEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID);
+    console.log("Moved Event", data);
 
-
-    res.status(200).send('Event approved');
+    res.status(200).json(data);
   } catch (error) {
     console.error('Error approving event:', error);
     res.status(500).send('Error approving event: ' + error.message);
