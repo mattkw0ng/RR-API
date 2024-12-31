@@ -128,7 +128,7 @@ async function getUserEvents(calendar, calendarId, userEmail) {
   // console.log('++ /userEvents response', response)
   // Filter the events by matching the user's email in the attendees
   const events = response.data.items.filter(event =>
-    event.attendees && event.attendees.some(attendee => attendee.email === userEmail && !event.extendedProperties.private.adminApproval)
+    event.attendees && event.attendees.some(attendee => attendee.email === userEmail)
   );
 
   return events.map((event) => unpackExtendedProperties(event))
@@ -148,7 +148,7 @@ router.get('/userEvents', async (req, res) => {
     const pendingEvents = await getUserEvents(calendar, PENDING_APPROVAL_CALENDAR_ID, userEmail);
     const approvedEvents = await getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail);
     const proposedEvents = await getUserEvents(calendar, PROPOSED_CHANGES_CALENDAR_ID, userEmail);
-
+    console.log(proposedEvents);
     const result = (pendingEvents.length === 0 && approvedEvents.length === 0 && proposedEvents.length === 0)
       ? null :
       { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed': proposedEvents };
@@ -712,7 +712,7 @@ router.post('/approveEvent', async (req, res) => {
 
     // Retrieve the event details from the "Pending approval" calendar
     const data = await moveAndUpdateEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID);
-    console.log("Moved Event", data);
+    // console.log("Moved Event", data);
 
     res.status(200).json(data);
   } catch (error) {
