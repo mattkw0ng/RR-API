@@ -149,9 +149,9 @@ router.get('/userEvents', async (req, res) => {
     const approvedEvents = await getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail);
     const proposedEvents = await getUserEvents(calendar, PROPOSED_CHANGES_CALENDAR_ID, userEmail);
 
-    const result = (pendingEvents.length != 0 && approvedEvents.length != 0 && proposedEvents.length != 0)
-      ? { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed': proposedEvents }
-      : null;
+    const result = (pendingEvents.length === 0 && approvedEvents.length === 0 && proposedEvents.length === 0)
+      ? null :
+      { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed': proposedEvents };
 
     // console.log("++ /userEvents events:", events);
     res.status(200).json(result);
