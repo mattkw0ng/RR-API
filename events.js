@@ -232,7 +232,7 @@ router.get('/proposedChangesEvents', async (req, res) => {
     console.log("> events after filtering", events);
     const parsedEvents = events.map((event) => unpackExtendedProperties(event));
     console.log("Parsed Proposed Events", parsedEvents);
-    res.status(200).json(parsedEvents);
+    res.status(200).json(JSON.stringify(parsedEvents));
   } catch (error) {
     console.error('Error fetching approved events:', error.message);
     res.status(500).send('Error fetching approved events: ' + error.message);
