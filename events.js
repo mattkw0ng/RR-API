@@ -244,7 +244,7 @@ router.get('/numPendingEvents', async (req, res) => {
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
     const now = new Date();
-    
+
     const pendingCalendar = await calendar.events.list({
       calendarId: PENDING_APPROVAL_CALENDAR_ID, // Replace with your "Pending approval" calendar ID
       singleEvents: false, // display recurring events as a single event
@@ -260,6 +260,7 @@ router.get('/numPendingEvents', async (req, res) => {
     const pendingCalendarEvents = pendingCalendar.data.items;
     const proposedCalendarEvents = proposedCalendar.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === true);
 
+    console.log(pendingCalendarEvents, proposedCalendarEvents);
     const num = pendingCalendarEvents.length + proposedCalendarEvents.length;
 
     res.status(200).send(num);
