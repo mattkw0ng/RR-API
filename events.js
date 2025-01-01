@@ -208,7 +208,7 @@ router.get('/approvedEvents', async (req, res) => {
 router.get('/proposedChangesEvents', async (req, res) => {
   try {
     const { isUser } = req.query; // if left out, default is false aka is Admin
-
+    console.log("Requester is User (not admin): ", isUser);
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
@@ -224,13 +224,12 @@ router.get('/proposedChangesEvents', async (req, res) => {
       orderBy: 'startTime',
     });
     console.log(response.data.items);
-    console.log("something is wrong here")
     for (const item of response.data.items) {
       console.log(item.extendedProperties);
     }
 
     const events = response.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === !isUser); // Filter by needsAdminApproval
-    console.log("> events after filtering",events);
+    console.log("> events after filtering", events);
     const parsedEvents = events.map((event) => unpackExtendedProperties(event));
     console.log("Parsed Proposed Events", parsedEvents);
     res.status(200).json(parsedEvents);
@@ -239,6 +238,35 @@ router.get('/proposedChangesEvents', async (req, res) => {
     res.status(500).send('Error fetching approved events: ' + error.message);
   }
 });
+
+router.get('/numPendingEvents', async (req, res) => {
+  try {
+    const auth = await authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    const pendingCalendar = await calendar.events.list({
+      calendarId: PENDING_APPROVAL_CALENDAR_ID, // Replace with your "Pending approval" calendar ID
+      singleEvents: false, // display recurring events as a single event
+      timeMin: now.toISOString()
+    });
+
+    const proposedCalendar = await calendar.events.list({
+      calendarId: PROPOSED_CHANGES_CALENDAR_ID,
+      singleEvents: false,
+      timeMin: now.toISOString()
+    });
+
+    const pendingCalendarEvents = pendingCalendar.data.items;
+    const proposedCalendarEvents = proposedCalendar.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === true);
+
+    const num = pendingCalendarEvents.length + proposedCalendarEvents.length;
+
+    res.status(200).send(num);
+  } catch (error) {
+    console.error('Error fetching number of pending events', error.message);
+    res.status(500).send('Error fetching number of pending events: ' + error.message);
+  }
+})
 
 
 // Get all the events under the "Pending Events Calendar"
