@@ -232,7 +232,7 @@ router.get('/proposedChangesEvents', async (req, res) => {
     console.log("> events after filtering", events);
     const parsedEvents = events.map((event) => unpackExtendedProperties(event));
     console.log("Parsed Proposed Events", parsedEvents);
-    res.status(200).json(JSON.stringify(parsedEvents));
+    res.status(200).json(parsedEvents);
   } catch (error) {
     console.error('Error fetching approved events:', error.message);
     res.status(500).send('Error fetching approved events: ' + error.message);
@@ -263,7 +263,7 @@ router.get('/numPendingEvents', async (req, res) => {
     console.log(pendingCalendarEvents, proposedCalendarEvents);
     const num = pendingCalendarEvents.length + proposedCalendarEvents.length;
 
-    res.status(200).send(num);
+    res.status(200).json(num);
   } catch (error) {
     console.error('Error fetching number of pending events', error.message);
     res.status(500).send('Error fetching number of pending events: ' + error.message);
