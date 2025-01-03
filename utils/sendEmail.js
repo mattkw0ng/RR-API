@@ -24,7 +24,7 @@ const createTransporter = async () => {
 const sendEmail = async (to, subject, text, html) => {
   try {
     const transporter = await createTransporter();
-    
+    console.log("recieved transporter")
     const mailOptions = {
       from: process.env.EMAIL, // Sender address
       to, // Recipient address
