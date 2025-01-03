@@ -47,6 +47,7 @@ async function authorize() {
 
   if (fs.existsSync(TOKEN_PATH)) {
     const token = JSON.parse(fs.readFileSync(TOKEN_PATH, "utf-8"));
+    process.env.REFRESH_TOKEN = token.refresh_token;
     oAuth2Client.setCredentials(token);
   } else {
     await getAccessToken(oAuth2Client);
