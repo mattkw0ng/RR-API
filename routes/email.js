@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const sendEmail = require("../utils/sendEmail"); // Import the sendEmail utility
+const { sendEmail } = require("../utils/sendEmail"); // Import the sendEmail utility
 
 // Route to send a reservation confirmation email
 router.post("/send-reservation-email", async (req, res) => {
