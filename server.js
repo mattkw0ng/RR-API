@@ -9,12 +9,13 @@ const session = require('express-session');
 const RedisStore = require('connect-redis').default;
 const { createClient } = require('redis');
 const cookieParser = require('cookie-parser')
-const { authorize } = require("./util");
+const { authorize } = require("./utils/authorize");
 
 // Import routes
 const authRoutes = require('./auth');
 const eventRoutes = require('./events');
 const roomsRoutes = require('./rooms');
+const emailRoutes = require('./routes/email');
 const { CLIENT_URL } = require('./config/config');
 
 // CORS config
@@ -87,7 +88,8 @@ app.use((req, res, next) => {
 
 app.use('/api/', authRoutes);
 app.use('/api/', eventRoutes);
-app.use('/api/', roomsRoutes.router)
+app.use('/api/', roomsRoutes.router);
+app.use('/api/email', emailRoutes);
 
 app.get('/test', async (req, res) => {
   res.send("Hello World!!");
