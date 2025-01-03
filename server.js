@@ -18,6 +18,17 @@ const roomsRoutes = require('./rooms');
 const emailRoutes = require('./routes/email');
 const { CLIENT_URL } = require('./config/config');
 
+// Load credentials from JSON
+const credentialsPath = path.join(__dirname, "./config/credentials.json");
+const credentials = JSON.parse(fs.readFileSync(credentialsPath, "utf-8"));
+const { client_id, client_secret, refresh_token } = credentials.web;
+
+// Set environment variables
+process.env.CLIENT_ID = client_id;
+process.env.CLIENT_SECRET = client_secret;
+process.env.REFRESH_TOKEN = refresh_token;
+process.env.EMAIL = 'rooms@sjcac.org';
+
 // CORS config
 const corsOptions = {
   origin: CLIENT_URL, // Set to the origin of frontend
