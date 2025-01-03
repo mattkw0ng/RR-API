@@ -5,8 +5,7 @@ const { authorize } = require("./authorize"); // Import the Google OAuth2 author
 const createTransporter = async () => {
   const oAuth2Client = await authorize();
   const accessToken = await oAuth2Client.getAccessToken();
-
-  return nodemailer.createTransport({
+  const nodeMailerBody = {
     service: "gmail",
     auth: {
       type: "OAuth2",
@@ -16,14 +15,16 @@ const createTransporter = async () => {
       refreshToken: process.env.REFRESH_TOKEN,
       accessToken: accessToken.token,
     },
-  });
+  }
+  console.log("attempting to send email with(createTransporter): ", nodeMailerBody);
+  return nodemailer.createTransport(nodeMailerBody);
 };
 
 // Function to send an email
 const sendEmail = async (to, subject, text, html) => {
   try {
     const transporter = await createTransporter();
-
+    
     const mailOptions = {
       from: process.env.EMAIL, // Sender address
       to, // Recipient address

@@ -64,12 +64,12 @@ const PORT = 5000;
 
 app.use(bodyParser.json());
 
-const CREDENTIALS_PATH = path.join(__dirname, 'json/credentials.json');
-const TOKEN_PATH = path.join(__dirname, 'token.json');
-const SCOPES = [
-  "https://www.googleapis.com/auth/gmail.send", // For sending emails
-  'https://www.googleapis.com/auth/calendar' // For calendar access
-];
+// const CREDENTIALS_PATH = path.join(__dirname, 'json/credentials.json');
+// const TOKEN_PATH = path.join(__dirname, 'token.json');
+// const SCOPES = [
+//   "https://www.googleapis.com/auth/gmail.send", // For sending emails
+//   'https://www.googleapis.com/auth/calendar' // For calendar access
+// ];
 
 // Session info logging
 app.use((req, res, next) => {
