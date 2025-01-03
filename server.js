@@ -19,7 +19,7 @@ const emailRoutes = require('./routes/email');
 const { CLIENT_URL } = require('./config/config');
 
 // Load credentials from JSON
-const credentialsPath = path.join(__dirname, "./config/credentials.json");
+const credentialsPath = path.join(__dirname, "./json/credentials.json");
 const credentials = JSON.parse(fs.readFileSync(credentialsPath, "utf-8"));
 const { client_id, client_secret, refresh_token } = credentials.web;
 
