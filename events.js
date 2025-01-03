@@ -12,6 +12,7 @@ const APPROVED_CALENDAR_ID = 'c_8f9a221bd12882ccda21c5fb81effbad778854cc940c855b
 const PROPOSED_CHANGES_CALENDAR_ID = 'c_8c14557969e2203d3eb811d73ac3add1abd73e45a9c337441b2b4aa95a141786@group.calendar.google.com';
 const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
+const { authorize } = require("./util")
 
 
 async function getCalendarIdByRoom(room) {
@@ -65,21 +66,6 @@ function extractRooms(input) {
 
   return cleanedBookedRooms;
 };
-
-// Authorize {rooms@sjcac.org} account
-async function authorize() {
-  const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
-  const { client_secret, client_id, redirect_uris } = credentials.web;
-  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-
-  if (fs.existsSync(TOKEN_PATH)) {
-    const token = fs.readFileSync(TOKEN_PATH, 'utf-8');
-    oAuth2Client.setCredentials(JSON.parse(token));
-  } else {
-    await getAccessToken(oAuth2Client);
-  }
-  return oAuth2Client;
-}
 
 // Check Availability of rooms given a certain time frame
 // Returns list of available rooms

@@ -9,6 +9,7 @@ const session = require('express-session');
 const RedisStore = require('connect-redis').default;
 const { createClient } = require('redis');
 const cookieParser = require('cookie-parser')
+const { authorize } = require("./util");
 
 // Import routes
 const authRoutes = require('./auth');
@@ -53,7 +54,10 @@ app.use(bodyParser.json());
 
 const CREDENTIALS_PATH = path.join(__dirname, 'json/credentials.json');
 const TOKEN_PATH = path.join(__dirname, 'token.json');
-const SCOPES = ['https://www.googleapis.com/auth/calendar'];
+const SCOPES = [
+  "https://www.googleapis.com/auth/gmail.send", // For sending emails
+  'https://www.googleapis.com/auth/calendar' // For calendar access
+];
 
 // Session info logging
 app.use((req, res, next) => {
@@ -80,43 +84,6 @@ app.use((req, res, next) => {
 
   next();
 });
-
-// Get Access Token from Google
-async function getAccessToken(oAuth2Client) {
-  const authUrl = oAuth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: SCOPES,
-  });
-  console.log('Authorize this router by visiting this url:', authUrl);
-  const rl = require('readline').createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  rl.question('Enter the code from that page here: ', (code) => {
-    rl.close();
-    oAuth2Client.getToken(code, (err, token) => {
-      if (err) return console.error('Error retrieving access token', err);
-      oAuth2Client.setCredentials(token);
-      fs.writeFileSync(TOKEN_PATH, JSON.stringify(token));
-      console.log('Token stored to', TOKEN_PATH);
-    });
-  });
-}
-
-// Authorize {rooms@sjcac.org} account
-async function authorize() {
-  const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
-  const { client_secret, client_id, redirect_uris } = credentials.web;
-  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-
-  if (fs.existsSync(TOKEN_PATH)) {
-    const token = fs.readFileSync(TOKEN_PATH, 'utf-8');
-    oAuth2Client.setCredentials(JSON.parse(token));
-  } else {
-    await getAccessToken(oAuth2Client);
-  }
-  return oAuth2Client;
-}
 
 app.use('/api/', authRoutes);
 app.use('/api/', eventRoutes);
