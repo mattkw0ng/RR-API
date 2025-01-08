@@ -572,7 +572,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 // MAIN ROOM REQUEST FUNCTION
 router.post('/addEventWithRooms', async (req, res) => {
   console.log("Incoming event request");
-  const { eventName, location, description, congregation, groupName, groupLeader, numPeople, startDateTime, endDateTime, rooms, userEmail, rRule } = req.body;
+  const { eventName, location, description, congregation, groupName, groupLeader, numPeople, startDateTime, endDateTime, rooms, userEmail, rRule, isAdmin } = req.body;
 
   if (!eventName || !startDateTime || !endDateTime || !rooms || rooms.length === 0) {
     return res.status(400).send('Missing required fields');
@@ -606,7 +606,8 @@ router.post('/addEventWithRooms', async (req, res) => {
         timeZone: 'America/Los_Angeles',
       },
       attendees: [
-        { email: userEmail } // Add the user as an attendee
+        { email: userEmail }, // Add the user as an attendee
+        ...(isAdmin ? roomAttendees : [])
       ],
       reminders: {
         useDefault: false,
@@ -617,14 +618,20 @@ router.post('/addEventWithRooms', async (req, res) => {
       },
       extendedProperties: {
         private: {
-          rooms: JSON.stringify(roomAttendees), // Store Room Information Here (not added officially to the room resource calendar until 'approved')
-          groupName: groupName,
-          groupLeader: groupLeader,
-          congregation: congregation,
-          numPeople: numPeople
-        }
+          ...(isAdmin
+            ? { groupName, groupLeader, congregation, numPeople } // Admin doesn't need room info here
+            : {
+                rooms: JSON.stringify(roomAttendees), // Non-admin stores room info here
+                groupName,
+                groupLeader,
+                congregation,
+                numPeople,
+              }),
+        },
       }
     };
+
+
     console.log("Event Details", event);
 
     if (rRule != 'FREQ=') {
@@ -643,6 +650,8 @@ router.post('/addEventWithRooms', async (req, res) => {
     res.status(500).send('Error adding event: ' + error.message);
   }
 });
+
+
 
 // Phased out : see moveAndUpdateEvent()
 const approveEvent = async (eventId, calendar, fromCalendarId) => {

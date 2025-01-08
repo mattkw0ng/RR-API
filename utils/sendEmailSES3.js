@@ -1,14 +1,15 @@
-const AWS = require('aws-sdk');
+const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
 require('dotenv').config();
-require('aws-sdk/lib/maintenance_mode_message').supress = true; // suppress 'Please migrate your code to use AWS SDK for JavaScript (v3).'
 
 const SES_CONFIG = {
-  accessKeyId: process.env.AWS_ACCESS_KEY,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_SES_REGION
-}
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+  region: process.env.AWS_SES_REGION,
+};
 
-const AWS_SES = new AWS.SES(SES_CONFIG);
+const sesClient = new SESClient(SES_CONFIG);
 
 const sendEmail = async (recipientEmail, name) => {
   let params = {
@@ -38,7 +39,8 @@ const sendEmail = async (recipientEmail, name) => {
   };
 
   try {
-    const res = await AWS_SES.sendEmail(params).promise();
+    const sendEmailCommand = new SendEmailCommand(params);
+    const res = await sesClient.send(sendEmailCommand);
     console.log('Email has been sent!', res);
   } catch (error) {
     console.error(error);
