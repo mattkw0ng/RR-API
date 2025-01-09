@@ -16,7 +16,7 @@ const authRoutes = require('./auth');
 const eventRoutes = require('./events');
 const roomsRoutes = require('./rooms');
 const emailRoutes = require('./routes/email');
-const { CLIENT_URL, ALLOWED_CLIENT_URLS } = require('./config/config');
+const { CLIENT_URL } = require('./config/config');
 
 // Load credentials from JSON
 const credentialsPath = path.join(__dirname, "./json/credentials.json");
@@ -31,14 +31,7 @@ process.env.EMAIL = 'rooms@sjcac.org';
 
 // CORS config
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or Postman) or from allowed domains
-    if (!origin || ALLOWED_CLIENT_URLS.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  }, // Set to the origin of frontend
+  origin: CLIENT_URL, // Set to the origin of frontend
   credentials: true, // Allow credentials (cookies, authentication headers)
 };
 
@@ -59,7 +52,8 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-      sameSite: 'none', // This is important for cross-origin requests
+      sameSite: 'lax', // This is important for cross-origin requests
+      domain: '.sjcac.org',
       secure: true, // This should be true if you're using HTTPS
       httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript
       maxAge: 1000 * 60 * 60 * 24, // Set cookie expiration (optional, e.g., 24 hours)
