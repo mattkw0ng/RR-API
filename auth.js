@@ -68,7 +68,7 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
       if (err) {
         console.error('Error saving session', err);
       } else {
-        console.log("Session successfully saved to Redis");
+        console.log("Session successfully saved to Redis", req.session);
       }
     })
     res.redirect(CLIENT_URL + returnPath); // Redirect to React router's home page on success

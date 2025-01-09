@@ -29,10 +29,12 @@ function initializePassport(app) {
         }));
 
     passport.serializeUser((user, done) => {
+        console.log('serializing user: ', user);
         done(null, user);
     });
 
     passport.deserializeUser((obj, done) => {
+        console.log('deserializing user: ', obj);
         done(null, obj);
     });
 }
