@@ -125,7 +125,7 @@ router.get('/get-cookie', (req, res) => {
 });
 
 router.get('/auth/user', (req, res) => {
-  // console.log('=======get /auth/user=======\n', req.session);
+  console.log('=======get /auth/user=======\n', req.session);
   if (req.isAuthenticated()) {
     console.log("Authenticated")
     // console.log({ user: req.user.profile })
