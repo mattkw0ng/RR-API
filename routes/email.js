@@ -1,41 +1,61 @@
 const express = require("express");
 const router = express.Router();
-const { sendEmail } = require("../utils/sendEmail"); // Import the sendEmail utility
+const { sendReservationReceivedEmail } = require("./sendEmail");
 
 // Route to send a reservation confirmation email
 router.post("/send-reservation-email", async (req, res) => {
-  const { email, reservationDetails } = req.body;
+  const { userEmail, userName, eventName, startDateTime, endDateTime, roomNames } = req.body;
 
-  if (!email || !reservationDetails) {
-    return res.status(400).send("Email and reservation details are required.");
+  // Validate the required fields
+  if (!userEmail || !userName || !eventName || !startDateTime || !endDateTime || !roomNames || roomNames.length === 0) {
+    return res.status(400).send("Missing required fields.");
   }
 
   try {
-    const subject = "Reservation Submitted: Awaiting Approval";
-    const text = `Dear User,
+    // Format the date and time
+    const eventDate = new Date(startDateTime).toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const eventTime = `${new Date(startDateTime).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })} - ${new Date(endDateTime).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
 
-Your reservation for ${reservationDetails.room} on ${reservationDetails.date} has been successfully submitted. 
-It is currently awaiting approval.
+    // Send the reservation confirmation email
+    await sendReservationReceivedEmail(userEmail, userName, eventName, eventDate, eventTime, roomNames);
 
-Thank you for using our service.
-
-Best regards,
-The Reservations Team`;
-
-    const html = `
-      <p>Dear User,</p>
-      <p>Your reservation for <strong>${reservationDetails.room}</strong> on <strong>${reservationDetails.date}</strong> has been successfully submitted. It is currently awaiting approval.</p>
-      <p>Thank you for using our service.</p>
-      <p>Best regards,<br>The Reservations Team</p>
-    `;
-
-    // Send the email
-    await sendEmail(email, subject, text, html);
-
-    res.status(200).send("Reservation email sent successfully.");
+    // Respond with success
+    res.status(200).send("Reservation confirmation email sent successfully.");
   } catch (error) {
     console.error("Error sending reservation email:", error);
-    res.status(500).send("Failed to send reservation email.");
+    res.status(500).send("Error sending reservation email.");
+  }
+});
+
+router.get("/test-reservation-email", async (req, res) => {
+  try {
+    // Dummy data
+    const userEmail = "testuser@example.com";
+    const userName = "Test User";
+    const eventName = "Test Event";
+    const eventDate = "Friday, December 15, 2024"; // Manually formatted for simplicity
+    const eventTime = "10:00 AM - 12:00 PM";
+    const roomNames = ["Sanctuary", "A101"];
+
+    // Call the email function
+    await sendReservationReceivedEmail(userEmail, userName, eventName, eventDate, eventTime, roomNames);
+
+    console.log("Test email sent successfully.");
+    res.status(200).send("Test email sent successfully.");
+  } catch (error) {
+    console.error("Error sending test email:", error);
+    res.status(500).send("Error sending test email.");
   }
 });
 
