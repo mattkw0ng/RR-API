@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { sendReservationReceivedEmail } = require("./sendEmail");
+const { sendReservationReceivedEmail } = require("./sendEmailSG");
 
 // Route to send a reservation confirmation email
 router.post("/send-reservation-email", async (req, res) => {
