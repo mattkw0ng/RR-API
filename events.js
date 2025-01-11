@@ -659,9 +659,9 @@ router.post('/addEventWithRooms', async (req, res) => {
     const roomNames = rooms;
 
     // Send confirmation email
-    await sendReservationReceivedEmail(userEmail, userName, summary, eventDate, eventTime, roomNames);
+    // await sendReservationReceivedEmail(userEmail, userName, summary, eventDate, eventTime, roomNames);
 
-    console.log('Email sent');
+    // console.log('Email sent');
     res.status(200).send('Event added');
   } catch (error) {
     console.error('Error adding event:', error);
