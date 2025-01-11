@@ -13,6 +13,13 @@ const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 const { authorize } = require("./utils/authorize");
 const { unpackExtendedProperties } = require('./utils/general');
+const {
+  sendReservationReceivedEmail,
+  sendReservationApprovedEmail,
+  sendReservationCanceledEmail,
+  sendReservationEditedEmail,
+} = require('./utils/sendEmailSG');
+
 
 
 async function getCalendarIdByRoom(room) {
@@ -644,6 +651,17 @@ router.post('/addEventWithRooms', async (req, res) => {
     });
 
     console.log('Event created: %s', response.data.htmlLink);
+
+    // Prepare email data
+    const userName = req.session.user.profile.displayName;
+    const eventDate = new Date(startDateTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const eventTime = `${new Date(startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(endDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const roomNames = rooms;
+
+    // Send confirmation email
+    await sendReservationReceivedEmail(userEmail, userName, summary, eventDate, eventTime, roomNames);
+
+    console.log('Email sent');
     res.status(200).send('Event added');
   } catch (error) {
     console.error('Error adding event:', error);
