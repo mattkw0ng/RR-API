@@ -15,7 +15,7 @@ const { authorize } = require("./utils/authorize");
 const authRoutes = require('./auth');
 const eventRoutes = require('./events');
 const roomsRoutes = require('./rooms');
-const emailRoutes = require('./routes/email');
+
 const { CLIENT_URL } = require('./config/config');
 
 // Load credentials from JSON
