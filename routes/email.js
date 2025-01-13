@@ -41,7 +41,7 @@ router.post("/send-reservation-email", async (req, res) => {
 router.get("/test-reservation-email", async (req, res) => {
   try {
     // Dummy data
-    const userEmail = "testuser@example.com";
+    const userEmail = "mattkwong52@gmail.com";
     const userName = "Test User";
     const eventName = "Test Event";
     const eventDate = "Friday, December 15, 2024"; // Manually formatted for simplicity
