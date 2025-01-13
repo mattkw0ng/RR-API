@@ -14,4 +14,5 @@ sgMail
   })
   .catch((error) => {
     console.error(error)
+    console.log(process.env.SENDGRID_API_KEY);
   })
