@@ -4,8 +4,6 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const roomsTools = require('./rooms');
-const CREDENTIALS_PATH = path.join(__dirname, 'json/credentials.json');
-const TOKEN_PATH = path.join(__dirname, 'json/token.json');
 const PENDING_APPROVAL_CALENDAR_ID = "c_0430068aa84472bdb1aa16b35d4061cd867e4888a8ace5fa3d830bb67587dfad@group.calendar.google.com";
 const APPROVED_CALENDAR_ID = 'c_8f9a221bd12882ccda21c5fb81effbad778854cc940c855b25086414babb1079@group.calendar.google.com';
 const PROPOSED_CHANGES_CALENDAR_ID = 'c_8c14557969e2203d3eb811d73ac3add1abd73e45a9c337441b2b4aa95a141786@group.calendar.google.com';
@@ -659,7 +657,7 @@ router.post('/addEventWithRooms', async (req, res) => {
     const roomNames = rooms;
 
     // Send confirmation email
-    // await sendReservationReceivedEmail(userEmail, userName, summary, eventDate, eventTime, roomNames);
+    await sendReservationReceivedEmail(userEmail, userName, summary, eventDate, eventTime, roomNames);
 
     // console.log('Email sent');
     res.status(200).send('Event added');
