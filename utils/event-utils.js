@@ -1,3 +1,4 @@
+const { getRoomNameByCalendarID } = require('../../google-calendar-client/src/util/util');
 const { authorize } = require('./authorize'); // Assuming you have an authorize function
 const { google } = require('googleapis');
 require('dotenv').config()
@@ -65,7 +66,7 @@ const extractEventDetailsForEmail = (event) => {
   })}`;
   console.log(event.extendedProperties.private);
   const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || "[]").map(
-    (room) => room.displayName || "Unknown Room"
+    (room) => getRoomNameByCalendarID(room.email) || "Unknown Room"
   );
 
   console.log("extracted data:", userEmail, userName, eventName, eventDate, eventTime, roomNames);

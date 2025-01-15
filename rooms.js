@@ -28,11 +28,18 @@ async function SearchRoom(capacity, resources) {
   return(result.rows);
 }
 
-async function GetRoomDetails(roomId) {
+async function GetRoomByName(roomName) {
   const result = await pool.query(
-    `SELECT * FROM rooms WHERE room_name = $1`, [roomId]
+    `SELECT * FROM rooms WHERE room_name = $1`, [roomName]
   );
   return(result.rows[0]);
+}
+
+async function GetRoomById(roomId) {
+  const result = await pool.query(
+    `SELECT * FROM rooms WHERE calendar_id = $1`, [roomId]
+  );
+  return(result.rows[0])
 }
 
 // TEST : get room data from database
@@ -75,5 +82,6 @@ router.post('/searchRoomBasic', async (req, res) => {
 module.exports = {
   router,
   SearchRoom,
-  GetRoomDetails
+  GetRoomByName,
+  GetRoomById,
 };

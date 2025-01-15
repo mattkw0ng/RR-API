@@ -5,6 +5,7 @@ const router = express.Router();
 const pool = require('./db');
 const { google } = require('googleapis');
 const { CLIENT_URL } = require('./config/config');
+const { upsertUser, getUserByEmail } = require('./utils/users');
 
 async function authorizeUser(email) {
   const result = await pool.query('SELECT access_token, refresh_token, token_expiry FROM users WHERE email = $1', [email]);
@@ -56,45 +57,42 @@ router.get('/auth/google', (req, res, next) => {
   passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: CLIENT_URL + '/login' }), // Redirect to React router's login page on failure
-  (req, res) => {
-    console.log('=======get /auth/google/callback======= session before\n', req.sessionID, req.session)
-    req.session.token = req.user.token; // probably unncessary
-    req.session.user = req.user;
-    const returnPath = req.session.returnPath || "/";
-    delete req.session.returnPath;
-    // console.log('=======get /auth/google/callback======= req.user \n', req.user);
-    console.log('=======get /auth/google/callback======= session after\n', req.sessionID, req.session, returnPath);
-    req.session.save((err) => {
-      if (err) {
-        console.error('Error saving session', err);
-      } else {
-        console.log("Session successfully saved to Redis", req.session);
-      }
-    })
-    res.redirect(CLIENT_URL + returnPath); // Redirect to React router's home page on success
+  async (req, res) => {
+    try {
+      console.log('=======get /auth/google/callback======= session before\n', req.sessionID, req.session)
+      const profile = req.user.profile;
+
+      // Extract user details from the Google profile
+      const user = {
+        email: profile.emails[0].value,
+        name: profile.displayName,
+        googleId: profile.id,
+      };
+
+      // Upsert the user into the database
+      await upsertUser(user);
+
+      req.session.token = req.user.token; // probably unncessary
+      req.session.user = req.user;
+      const returnPath = req.session.returnPath || "/";
+      delete req.session.returnPath;
+
+      console.log('=======get /auth/google/callback======= session after\n', req.sessionID, req.session, returnPath);
+
+      req.session.save((err) => {
+        if (err) {
+          console.error('Error saving session', err);
+        } else {
+          console.log("Session successfully saved to Redis", req.session);
+        }
+      })
+      res.redirect(CLIENT_URL + returnPath); // Redirect to React router's home page on success
+    } catch (err) {
+      console.error('Error handling Google callback', err);
+      res.status(500).send('Error handling Google callback: ' + err.message)
+    }
+
   });
-
-// router.post('/auth/google/callback', async (req, res) => {
-//   const { code } = req.query;
-//   const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
-
-//   const { tokens } = await oAuth2Client.getToken(code);
-//   oAuth2Client.setCredentials(tokens);
-
-//   const { access_token, refresh_token, expiry_date } = tokens;
-
-//   // Save tokens to the database
-//   const userEmail = 'user@example.com'; // Replace with the authenticated user's email
-//   await pool.query(
-//       `INSERT INTO users (email, access_token, refresh_token, token_expiry)
-//        VALUES ($1, $2, $3, $4)
-//        ON CONFLICT (email)
-//        DO UPDATE SET access_token = $2, refresh_token = $3, token_expiry = $4`,
-//       [userEmail, access_token, refresh_token, expiry_date]
-//   );
-
-//   res.redirect('/profile'); // Redirect to your app's home page after successful login
-// });
 
 router.get('/logout', (req, res) => {
   req.logout((err) => {
@@ -142,6 +140,17 @@ router.get('/auth/user', (req, res) => {
     res.status(401).json({ error: 'Not authenticated' }); // Send error if not authenticated
   }
 });
+
+router.get('/auth/getUserByEmail', async (req, res) => {
+  const { userEmail } = req.query;
+  if (userEmail) {
+    const userData = await getUserByEmail(userEmail);
+    console.log("Fetched User Data: ", userData);
+    res.json(userData);
+  } else {
+    res.status(500).send('No email provided');
+  }
+})
 
 // Dummy Login function for testing session storage
 router.post('/auth/login', (req, res) => {
