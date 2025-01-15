@@ -48,7 +48,7 @@ const extractEventDetailsForEmail = (event) => {
   const userAttendee = event.attendees?.find((attendee) => attendee.email && !attendee.resource);
   console.log("userAttendee: ", userAttendee);
   const userEmail = userAttendee?.email || "No email provided";
-  const userName = event.creator?.displayName || "User"; // Replace with a fallback if displayName is unavailable
+  const userName = event.creator?.displayName || "User"; // TODO: use req.session.user to fill this because google does not store the name in the attendees property. OR store name somewhere else that I can read it XD
   const eventName = event.summary || "No event name";
   const eventDate = new Date(event.start.dateTime).toLocaleDateString("en-US", {
     weekday: "long",
