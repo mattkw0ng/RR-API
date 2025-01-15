@@ -44,7 +44,7 @@ const extractEventDetailsForEmail = (event) => {
   if (!event) {
     throw new Error("Invalid event object");
   }
-
+  console.log(event);
   const userEmail = event.creator?.email || "No email provided";
   const userName = event.creator?.displayName || "User"; // Replace with a fallback if displayName is unavailable
   const eventName = event.summary || "No event name";
