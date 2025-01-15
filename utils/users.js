@@ -1,4 +1,4 @@
-const pool = require('./db');
+const pool = require('../db');
 
 /**
  * Upserts a user into the database.
