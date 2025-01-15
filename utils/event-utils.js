@@ -45,7 +45,9 @@ const extractEventDetailsForEmail = (event) => {
     throw new Error("Invalid event object");
   }
 
-  const userEmail = event.creator?.email || "No email provided";
+  const userAttendee = event.attendees?.find((attendee) => attendee.email && !attendee.resource);
+  console.log("userAttendee: ", userAttendee);
+  const userEmail = userAttendee?.email || "No email provided";
   const userName = event.creator?.displayName || "User"; // Replace with a fallback if displayName is unavailable
   const eventName = event.summary || "No event name";
   const eventDate = new Date(event.start.dateTime).toLocaleDateString("en-US", {
@@ -65,6 +67,7 @@ const extractEventDetailsForEmail = (event) => {
     (room) => room.displayName || "Unknown Room"
   );
 
+  console.log("extracted data:", userEmail, userName, eventName, eventDate, eventTime, roomNames);
   return { userEmail, userName, eventName, eventDate, eventTime, roomNames };
 };
 
