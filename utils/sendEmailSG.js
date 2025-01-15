@@ -99,28 +99,40 @@ const sendReservationCanceledEmail = async (userEmail, userName, eventName) => {
 };
 
 /**
- * Notify user their room reservation request has been edited.
+ * Notify user their room reservation request has been edited (Fire-and-forget).
  */
-const sendReservationEditedEmail = async (userEmail, userName, eventName, updatedEventDate, updatedEventTime, updatedRoomNames) => {
-  await sendEmail(
-    userEmail,
-    'Your Room Reservation Request has been Edited',
-    'Your room reservation request has been updated.',
-    `
-      <p>Dear ${userName},</p>
-      <p>Your room reservation request for <strong>${eventName}</strong> has been updated.</p>
-      <p>Updated Details:</p>
-      <ul>
-        <li><strong>Date:</strong> ${updatedEventDate}</li>
-        <li><strong>Time:</strong> ${updatedEventTime}</li>
-        <li><strong>Room(s):</strong> ${updatedRoomNames.join(', ')}</li>
-      </ul>
-      <p>If you did not request this change, please contact us immediately.</p>
-      <p>Thank you,</p>
-      <p><strong>SJCAC Room Reservation Team</strong></p>
-    `
-  );
+const sendReservationEditedEmail = (userEmail, userName, eventName, updatedEventDate, updatedEventTime, updatedRoomNames) => {
+  // Return a Promise to handle the email asynchronously
+  return new Promise((resolve, reject) => {
+    sendEmail(
+      userEmail,
+      'Your Room Reservation Request has been Edited',
+      'Your room reservation request has been updated.',
+      `
+        <p>Dear ${userName},</p>
+        <p>Your room reservation request for <strong>${eventName}</strong> has been updated.</p>
+        <p>Updated Details:</p>
+        <ul>
+          <li><strong>Date:</strong> ${updatedEventDate}</li>
+          <li><strong>Time:</strong> ${updatedEventTime}</li>
+          <li><strong>Room(s):</strong> ${updatedRoomNames.join(', ')}</li>
+        </ul>
+        <p>If you did not request this change, please contact us immediately.</p>
+        <p>Thank you,</p>
+        <p><strong>SJCAC Room Reservation Team</strong></p>
+      `
+    )
+      .then(() => {
+        console.log(`Email sent successfully to ${userEmail}`);
+        resolve(); // Resolve the promise on success
+      })
+      .catch((error) => {
+        console.error(`Failed to send email to ${userEmail}:`, error);
+        reject(error); // Reject the promise on failure
+      });
+  });
 };
+
 
 /**
  * Notify admins about a new room reservation request.

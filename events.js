@@ -861,7 +861,8 @@ router.post('/editEvent', async (req, res) => {
         emailDetails.eventDate,
         emailDetails.eventTime,
         emailDetails.roomNames
-      ).catch((err) => console.error('Email sending failed:', err));
+      ).then(() => console.log('Email sent successfully in the background'))
+      .catch((err) => console.error('Fire-and-forget email error:', err));
 
       return res.status(200).json({
         message: "Event updated successfully.",
