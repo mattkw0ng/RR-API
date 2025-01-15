@@ -4,9 +4,10 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const roomsTools = require('./rooms');
-const PENDING_APPROVAL_CALENDAR_ID = "c_0430068aa84472bdb1aa16b35d4061cd867e4888a8ace5fa3d830bb67587dfad@group.calendar.google.com";
-const APPROVED_CALENDAR_ID = 'c_8f9a221bd12882ccda21c5fb81effbad778854cc940c855b25086414babb1079@group.calendar.google.com';
-const PROPOSED_CHANGES_CALENDAR_ID = 'c_8c14557969e2203d3eb811d73ac3add1abd73e45a9c337441b2b4aa95a141786@group.calendar.google.com';
+require('dotenv').config()
+const PENDING_APPROVAL_CALENDAR_ID = process.env.PENDING_APPROVAL_CALENDAR_ID;
+const APPROVED_CALENDAR_ID = process.env.APPROVED_CALENDAR_ID;
+const PROPOSED_CHANGES_CALENDAR_ID = process.env.PROPOSED_CHANGES_CALENDAR_ID;
 const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 const { authorize } = require("./utils/authorize");
@@ -16,6 +17,7 @@ const {
   sendReservationApprovedEmail,
   sendReservationCanceledEmail,
   sendReservationEditedEmail,
+  notifyAdminsOfNewRequest,
 } = require('./utils/sendEmailSG');
 
 
@@ -626,12 +628,12 @@ router.post('/addEventWithRooms', async (req, res) => {
           ...(isAdmin
             ? { groupName, groupLeader, congregation, numPeople } // Admin doesn't need room info here
             : {
-                rooms: JSON.stringify(roomAttendees), // Non-admin stores room info here
-                groupName,
-                groupLeader,
-                congregation,
-                numPeople,
-              }),
+              rooms: JSON.stringify(roomAttendees), // Non-admin stores room info here
+              groupName,
+              groupLeader,
+              congregation,
+              numPeople,
+            }),
         },
       }
     };
@@ -666,39 +668,6 @@ router.post('/addEventWithRooms', async (req, res) => {
     res.status(500).send('Error adding event: ' + error.message);
   }
 });
-
-
-
-// Phased out : see moveAndUpdateEvent()
-const approveEvent = async (eventId, calendar, fromCalendarId) => {
-  // Retrieve the event details from the "Pending approval" calendar
-  const eventResponse = await calendar.events.get({
-    calendarId: fromCalendarId,
-    eventId: eventId,
-  });
-
-  const event = eventResponse.data;
-
-  if (fromCalendarId === PROPOSED_CHANGES_CALENDAR_ID) {
-    delete event.id;
-    delete event.etag;
-  }
-  // attatch room to event as an attendee
-  event.attendees.push(...JSON.parse(event.extendedProperties.private.rooms))
-
-  console.log("++ Approve Events event data:", event);
-
-  // Insert the event into the "approved" calendar
-  calendar.events.insert({
-    calendarId: APPROVED_CALENDAR_ID,
-    resource: event,
-  });
-
-  calendar.events.delete({
-    calendarId: fromCalendarId,
-    eventId: eventId,
-  })
-}
 
 // New Approval Method
 const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCalendarId, edits = {}) => {
@@ -757,7 +726,16 @@ router.post('/approveEvent', async (req, res) => {
 
     // Retrieve the event details from the "Pending approval" calendar
     const data = await moveAndUpdateEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID);
-    // console.log("Moved Event", data);
+
+    const emailDetails = extractEventDetailsForEmail(data);
+    sendReservationApprovedEmail(
+      emailDetails.userEmail,
+      emailDetails.userName,
+      emailDetails.eventName,
+      emailDetails.eventDate,
+      emailDetails.eventTime,
+      emailDetails.roomNames
+    ).catch((err) => console.error('Email sending failed:', err));
 
     res.status(200).json(data);
   } catch (error) {
@@ -779,7 +757,18 @@ router.post('/quickApprove', async (req, res) => {
     const calendar = google.calendar({ version: 'v3', auth });
 
     for (eventId of eventIdList) {
-      await approveEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID);
+      const data = await moveAndUpdateEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID);
+
+      const emailDetails = extractEventDetailsForEmail(data);
+
+      sendReservationApprovedEmail(
+        emailDetails.userEmail,
+        emailDetails.userName,
+        emailDetails.eventName,
+        emailDetails.eventDate,
+        emailDetails.eventTime,
+        emailDetails.roomNames
+      ).catch((err) => console.error('Email sending failed:', err));;
     }
 
     res.status(200).send('Event List Approved');
@@ -862,6 +851,16 @@ router.post('/editEvent', async (req, res) => {
         eventId: event.id,
         requestBody: event,
       });
+
+      const emailDetails = extractEventDetailsForEmail(updatedEvent);
+      sendReservationEditedEmail(
+        emailDetails.userEmail,
+        emailDetails.userName,
+        emailDetails.eventName,
+        emailDetails.eventDate,
+        emailDetails.eventTime,
+        emailDetails.roomNames
+      ).catch((err) => console.error('Email sending failed:', err));
 
       return res.status(200).json({
         message: "Event updated successfully.",
@@ -1011,6 +1010,10 @@ router.delete('rejectEvent', async (req, res) => {
       calendarId: PENDING_APPROVAL_CALENDAR_ID, // Pending Calendar ID
       eventId: eventId, // Event ID
     });
+
+    const userName = req.session.user.profile.displayName;
+    const userEmail = req.session.user.profile.emails[0];
+    sendReservationCanceledEmail(userEmail, userName, eventId).catch((err) => console.error('Error sending email:', err));
 
     res.status(200).json({ message: 'Event successfully deleted' });
   } catch (error) {

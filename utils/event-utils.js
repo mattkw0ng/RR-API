@@ -1,17 +1,16 @@
 const { authorize } = require('./authorize'); // Assuming you have an authorize function
 const { google } = require('googleapis');
-const { sendEmail } = require('./sendEmailSG');
-const ADMIN_EMAILS = ['matt.kwong@sjcac.org', 'audrey.kwong@sjcac.org', 'churchoffice@sjcac.org']; // Replace with actual admin emails
+require('dotenv').config()
 
 // Constants for your calendar IDs
-const PENDING_APPROVAL_CALENDAR_ID = 'your-pending-calendar-id@group.calendar.google.com';
-const PROPOSED_CHANGES_CALENDAR_ID = 'your-proposed-calendar-id@group.calendar.google.com';
+const PENDING_APPROVAL_CALENDAR_ID = process.env.PENDING_APPROVAL_CALENDAR_ID;
+const PROPOSED_CHANGES_CALENDAR_ID = process.env.PROPOSED_CHANGES_CALENDAR_ID;
 
 /**
  * Fetch all pending events from the pending and proposed calendars.
  * @returns {Promise<number>} - Total number of pending events.
  */
-const getPendingEvents = async () => {
+const getNumPendingEvents = async () => {
   try {
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
@@ -41,65 +40,38 @@ const getPendingEvents = async () => {
   }
 };
 
-/**
- * Notify admins about a new room reservation request.
- * @param {object} newEvent - The new room reservation request.
- * @returns {Promise<void>}
- */
-const notifyAdminsOfNewRequest = async (newEvent) => {
-  try {
-    // Fetch the total number of pending events
-    const numPendingEvents = await getPendingEvents();
-
-    // Extract details of the new event
-    const eventDetails = `
-      <p><strong>Event Name:</strong> ${newEvent.summary}</p>
-      <p><strong>Date:</strong> ${new Date(newEvent.start.dateTime).toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })}</p>
-      <p><strong>Time:</strong> ${new Date(newEvent.start.dateTime).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      })} - ${new Date(newEvent.end.dateTime).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}</p>
-      <p><strong>Rooms:</strong> ${JSON.parse(newEvent.extendedProperties.private.rooms)
-        .map((room) => room.displayName)
-        .join(', ')}</p>
-      <p><strong>Description:</strong> ${newEvent.description || 'No description provided'}</p>
-    `;
-
-    // Email content
-    const subject = `New Room Reservation Request: ${newEvent.summary}`;
-    const text = `A new room reservation request has been submitted. Total pending events: ${numPendingEvents}`;
-    const html = `
-      <p>Dear Admins,</p>
-      <p>A new room reservation request has been submitted:</p>
-      ${eventDetails}
-      <p><strong>Total Pending Events:</strong> ${numPendingEvents}</p>
-      <p>Please log in to review and take action.</p>
-      <p>Thank you,</p>
-      <p><strong>SJCAC Room Reservation Team</strong></p>
-    `;
-
-    // Send email to all admins
-    await Promise.all(
-      ADMIN_EMAILS.map((email) =>
-        sendEmail(email, subject, text, html)
-      )
-    );
-
-    console.log('Notification email sent to admins.');
-  } catch (error) {
-    console.error('Error notifying admins:', error.message);
-    throw new Error('Failed to notify admins');
+const extractEventDetailsForEmail = (event) => {
+  if (!event) {
+    throw new Error("Invalid event object");
   }
+
+  const userEmail = event.creator?.email || "No email provided";
+  const userName = event.creator?.displayName || "User"; // Replace with a fallback if displayName is unavailable
+  const eventName = event.summary || "No event name";
+  const eventDate = new Date(event.start.dateTime).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const eventTime = `${new Date(event.start.dateTime).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })} - ${new Date(event.end.dateTime).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+  const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || "[]").map(
+    (room) => room.displayName || "Unknown Room"
+  );
+
+  return { userEmail, userName, eventName, eventDate, eventTime, roomNames };
 };
 
+
+
+
 module.exports = {
-  notifyAdminsOfNewRequest,
+  getNumPendingEvents,
+  extractEventDetailsForEmail,
 };

@@ -1,4 +1,6 @@
 const sgMail = require('@sendgrid/mail');
+const { getNumPendingEvents } = require('./event-utils')
+require('dotenv').config()
 
 // Set SendGrid API Key
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -120,9 +122,70 @@ const sendReservationEditedEmail = async (userEmail, userName, eventName, update
   );
 };
 
+/**
+ * Notify admins about a new room reservation request.
+ * @param {object} newEvent - The new room reservation request.
+ * @returns {Promise<void>}
+ */
+const notifyAdminsOfNewRequest = async (newEvent) => {
+  try {
+    // Fetch the total number of pending events
+    const numPendingEvents = await getNumPendingEvents();
+    const admin_emails = ['matt.kwong@sjcac.org', 'audrey.kwong@sjcac.org']; // Replace with actual admin emails
+
+    // Extract details of the new event
+    const eventDetails = `
+      <p><strong>Event Name:</strong> ${newEvent.summary}</p>
+      <p><strong>Date:</strong> ${new Date(newEvent.start.dateTime).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })}</p>
+      <p><strong>Time:</strong> ${new Date(newEvent.start.dateTime).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })} - ${new Date(newEvent.end.dateTime).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}</p>
+      <p><strong>Rooms:</strong> ${JSON.parse(newEvent.extendedProperties.private.rooms)
+        .map((room) => room.displayName)
+        .join(', ')}</p>
+      <p><strong>Description:</strong> ${newEvent.description || 'No description provided'}</p>
+    `;
+
+    // Email content
+    const subject = `New Room Reservation Request: ${newEvent.summary}`;
+    const text = `A new room reservation request has been submitted. Total pending events: ${numPendingEvents}`;
+    const html = `
+      <p>Dear Admins,</p>
+      <p>A new room reservation request has been submitted:</p>
+      ${eventDetails}
+      <p><strong>Total Pending Events:</strong> ${numPendingEvents}</p>
+      <p>Please log in to review and take action.</p>
+      <p>Thank you,</p>
+      <p><strong>SJCAC Room Reservation Team</strong></p>
+    `;
+
+    // Send email to all admins
+    await Promise.all(
+      admin_emails.map((email) =>
+        sendEmail(email, subject, text, html)
+      )
+    );
+
+    console.log('Notification email sent to admins.');
+  } catch (error) {
+    console.error('Error notifying admins:', error.message);
+    throw new Error('Failed to notify admins');
+  }
+};
+
 module.exports = {
   sendReservationReceivedEmail,
   sendReservationApprovedEmail,
   sendReservationCanceledEmail,
   sendReservationEditedEmail,
+  notifyAdminsOfNewRequest,
 };
