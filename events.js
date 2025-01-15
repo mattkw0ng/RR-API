@@ -853,7 +853,7 @@ router.post('/editEvent', async (req, res) => {
         requestBody: event,
       });
 
-      const emailDetails = extractEventDetailsForEmail(updatedEvent);
+      const emailDetails = extractEventDetailsForEmail(updatedEvent.data);
       sendReservationEditedEmail(
         emailDetails.userEmail,
         emailDetails.userName,
