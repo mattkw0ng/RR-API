@@ -63,6 +63,7 @@ const extractEventDetailsForEmail = (event) => {
     hour: "2-digit",
     minute: "2-digit",
   })}`;
+  console.log(event.extendedProperties.private);
   const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || "[]").map(
     (room) => room.displayName || "Unknown Room"
   );
