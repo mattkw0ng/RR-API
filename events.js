@@ -12,6 +12,7 @@ const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 const { authorize } = require("./utils/authorize");
 const { unpackExtendedProperties } = require('./utils/general');
+const { extractEventDetailsForEmail } = require('./utils/event-utils');
 const {
   sendReservationReceivedEmail,
   sendReservationApprovedEmail,
