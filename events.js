@@ -586,6 +586,8 @@ router.post('/addEventWithRooms', async (req, res) => {
     return res.status(400).send('Missing required fields');
   }
 
+  console.log("RRULE: ", rRule);
+
   try {
     const summary = eventName
     const auth = await authorize();
