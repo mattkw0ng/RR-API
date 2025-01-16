@@ -5,7 +5,8 @@ const router = express.Router();
 const pool = require('./db');
 const { google } = require('googleapis');
 const { CLIENT_URL } = require('./config/config');
-const { upsertUser, getUserByEmail } = require('./utils/users');
+const { upsertUser, getUserByEmail, updateUserRole } = require('./utils/users');
+const { isAuthenticated, isAdmin } = require('./middlewares/auth');
 
 async function authorizeUser(email) {
   const result = await pool.query('SELECT access_token, refresh_token, token_expiry FROM users WHERE email = $1', [email]);
@@ -149,6 +150,26 @@ router.get('/auth/getUserByEmail', async (req, res) => {
     res.json(userData);
   } else {
     res.status(500).send('No email provided');
+  }
+})
+
+router.post('/admin', isAuthenticated, isAdmin, async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({error: "Email is required"});
+  }
+
+  try {
+    const user = await getUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({error: "User not found"});
+    }
+
+    await updateUserRole(email, 'admin');
+    res.status(200).json({message: `User ${email} has been promoted to admin`});
+  } catch (error) {
+    console.error("Error promoting user to admin", error);
+    res.status(500).json({error: 'Server Error'})
   }
 })
 

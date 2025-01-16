@@ -53,8 +53,21 @@ const getUserByEmail = async (userEmail) => {
   }
 }
 
+const updateUserRole = async (email, role) => {
+  const query = "UPDATE users SET role = $1 WHERE email = $2";
+  const values = [role, email];
+
+  try {
+    await pool.query(query, values);
+    console.log(`Updated ${email} to role ${role}`);
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    throw error;
+  }
+};
 
 module.exports = {
   upsertUser,
   getUserByEmail,
+  updateUserRole
 }
