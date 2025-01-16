@@ -648,8 +648,10 @@ router.post('/addEventWithRooms', async (req, res) => {
       event.recurrence = [`RRULE:${rRule}`]
     }
 
+    const calId = isAdmin ? APPROVED_CALENDAR_ID : PENDING_APPROVAL_CALENDAR_ID;
+
     const response = await calendar.events.insert({
-      calendarId: PENDING_APPROVAL_CALENDAR_ID,
+      calendarId: calId,
       resource: event,
     });
 
