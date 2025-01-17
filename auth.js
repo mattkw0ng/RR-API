@@ -130,12 +130,22 @@ router.get('/get-cookie', (req, res) => {
   res.send(`Cookie received: ${cookie}`);
 });
 
-router.get('/auth/user', (req, res) => {
+router.get('/auth/user', async (req, res) => {
   console.log('=======get /auth/user=======\n', req.session);
   if (req.isAuthenticated()) {
     console.log("Authenticated")
     // console.log({ user: req.user.profile })
-    res.json({ user: req.user.profile }); // Send user info to frontend if authenticated
+    const dbUser = await getUserByEmail(req.user.profile.emails[0].value);
+    if (!dbUser) {
+      return res.status(404).json({error: 'User not found in database'});
+    }
+    
+    req.session.role = dbUser.role; // Add role to session
+
+    res.json({ user: {
+      ...req.user.profile,
+      role: dbUser.role
+    } }); // Send user info to frontend if authenticated
   } else {
     console.log("Not Authenticated")
     res.status(401).json({ error: 'Not authenticated' }); // Send error if not authenticated
