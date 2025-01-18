@@ -9,17 +9,14 @@ const upsertUser = async (user) => {
   const { email, name, googleId, role = "user" } = user;
 
   if (!email) {
-    throw new Error("Email is required for upserting a user.");
+    throw new Error("Email is required for adding a user.");
   }
 
   const query = `
     INSERT INTO users (email, name, google_id, role)
     VALUES ($1, $2, $3, $4)
     ON CONFLICT (email)
-    DO UPDATE SET
-      name = EXCLUDED.name,
-      google_id = EXCLUDED.google_id,
-      role = EXCLUDED.role
+    DO NOTHING
     RETURNING *;
   `;
 
@@ -27,10 +24,15 @@ const upsertUser = async (user) => {
 
   try {
     const result = await pool.query(query, values);
-    console.log("Upserted user:", result.rows[0]);
-    return result.rows[0]; // Return the upserted user if needed
+    if (result.rows.length > 0) {
+      console.log("Inserted new user:", result.rows[0]);
+      return result.rows[0]; // Return the inserted user
+    } else {
+      console.log("User already exists, no action taken.");
+      return null; // Return null if the user already exists
+    }
   } catch (error) {
-    console.error("Error upserting user:", error);
+    console.error("Error adding user:", error);
     throw error;
   }
 };
