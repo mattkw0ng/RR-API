@@ -36,7 +36,13 @@ const sendEmail = async (toEmail, subject, text, html) => {
 /**
  * Notify user their room reservation request has been received.
  */
-const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDate, eventTime, roomNames) => {
+const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames) => {
+  const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
+  const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
+
+  const eventDate = startTime.toLocaleString(DateTime.DATE_FULL); // e.g., "Monday, January 15, 2025"
+  const eventTime = `${startTime.toLocaleString(DateTime.TIME_SIMPLE)} - ${endTime.toLocaleString(DateTime.TIME_SIMPLE)}`;
+
   await sendEmail(
     userEmail,
     'Your Room Reservation Request has been Received',
