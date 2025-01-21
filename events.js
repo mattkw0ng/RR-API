@@ -1,5 +1,6 @@
 const express = require('express');
 const { google } = require('googleapis');
+const { DateTime } = require('luxon');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
@@ -870,7 +871,7 @@ router.post('/editEvent', async (req, res) => {
         emailDetails.eventTime,
         emailDetails.roomNames
       ).then(() => console.log('Email sent successfully in the background'))
-      .catch((err) => console.error('Fire-and-forget email error:', err));
+        .catch((err) => console.error('Fire-and-forget email error:', err));
 
       return res.status(200).json({
         message: "Event updated successfully.",
