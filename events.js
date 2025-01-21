@@ -660,14 +660,9 @@ router.post('/addEventWithRooms', async (req, res) => {
 
     // Prepare email data using Luxon
     const userName = req.session.user.profile.displayName;
-    const start = DateTime.fromISO(startDateTime, { zone: 'America/Los_Angeles' });
-    const end = DateTime.fromISO(endDateTime, { zone: 'America/Los_Angeles' });
-    const eventDate = start.toLocaleString(DateTime.DATE_FULL);
-    const eventTime = `${start.toLocaleString(DateTime.TIME_SIMPLE)} - ${end.toLocaleString(DateTime.TIME_SIMPLE)}`;
-    const roomNames = rooms;
 
     // Send confirmation email (non-blocking)
-    sendReservationReceivedEmail(userEmail, userName, summary, eventDate, eventTime, roomNames)
+    sendReservationReceivedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms)
       .then(() => console.log('Email sent'))
       .catch((emailError) => console.error('Error sending email:', emailError));
 
