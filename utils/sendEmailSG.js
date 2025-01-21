@@ -1,5 +1,6 @@
 const sgMail = require('@sendgrid/mail');
 const { getNumPendingEvents } = require('./event-utils')
+const { DateTime } = require('luxon');
 require('dotenv').config()
 
 // Set SendGrid API Key
