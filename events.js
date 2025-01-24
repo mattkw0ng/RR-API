@@ -115,8 +115,7 @@ async function getUserEvents(calendar, calendarId, userEmail) {
   const response = await calendar.events.list({
     calendarId: calendarId, // or your specific calendar ID
     timeMin: now.toISOString(),
-    singleEvents: true,
-    orderBy: 'startTime',
+    singleEvents: false,
     q: userEmail, // Search by user email in attendees
   });
 
@@ -125,6 +124,19 @@ async function getUserEvents(calendar, calendarId, userEmail) {
   const events = response.data.items.filter(event =>
     event.attendees && event.attendees.some(attendee => attendee.email === userEmail && event.extendedProperties.private.adminApproval !== "true")
   );
+
+  for (currEvent of events) {
+    if (currEvent.recurrence) {
+      // For recurring events, find all instances and check conflicts for each instance
+      const instancesResponse = await calendar.events.instances({
+        calendarId: PENDING_APPROVAL_CALENDAR_ID,
+        eventId: currEvent.id,
+      })
+      const instances = instancesResponse.data.items;
+  
+      currEvent.instances = instances.map((e) => unpackExtendedProperties(e));
+    }
+  }
 
   return events.map((event) => unpackExtendedProperties(event))
 }
@@ -495,7 +507,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     // Fetch pending events with room resources
     const response = await calendar.events.list({
       calendarId: PENDING_APPROVAL_CALENDAR_ID,
-      singleEvents: false, // Ensure events are expanded to individual instances
+      singleEvents: false, // recurring events will be displayed as single events
       timeMin: new Date(),
     });
     const pendingEvents = response.data.items;
