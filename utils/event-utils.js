@@ -64,7 +64,7 @@ const extractEventDetailsForEmail = (event) => {
     minute: "2-digit",
   })}`;
   console.log(event.extendedProperties.private);
-  const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || "[]").map(
+  const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || event.attendees.filter((room) => room.resource === true)).map(
     (room) => room.displayName || "Unknown Room"
   );
 
