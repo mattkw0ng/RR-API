@@ -160,7 +160,7 @@ router.get('/userEvents', async (req, res) => {
       ? null :
       { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed': proposedEvents };
 
-    // console.log("++ /userEvents events:", events);
+    console.log("++ /userEvents events:", result);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).send(error.message);
