@@ -67,7 +67,13 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
 /**
  * Notify user their room reservation request has been approved.
  */
-const sendReservationApprovedEmail = async (userEmail, userName, eventName, eventDate, eventTime, roomNames) => {
+const sendReservationApprovedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames) => {
+  const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
+  const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
+
+  const eventDate = startTime.toLocaleString(DateTime.DATE_FULL); // e.g., "Monday, January 15, 2025"
+  const eventTime = `${startTime.toLocaleString(DateTime.TIME_SIMPLE)} - ${endTime.toLocaleString(DateTime.TIME_SIMPLE)}`;
+
   await sendEmail(
     userEmail,
     'Your Room Reservation Request has been Approved',
@@ -108,7 +114,14 @@ const sendReservationCanceledEmail = async (userEmail, userName, eventName) => {
 /**
  * Notify user their room reservation request has been edited (Fire-and-forget).
  */
-const sendReservationEditedEmail = (userEmail, userName, eventName, updatedEventDate, updatedEventTime, updatedRoomNames) => {
+const sendReservationEditedEmail = (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, updatedRoomNames) => {
+
+  const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
+  const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
+
+  const eventDate = startTime.toLocaleString(DateTime.DATE_FULL); // e.g., "Monday, January 15, 2025"
+  const eventTime = `${startTime.toLocaleString(DateTime.TIME_SIMPLE)} - ${endTime.toLocaleString(DateTime.TIME_SIMPLE)}`;
+
   // Return a Promise to handle the email asynchronously
   return new Promise((resolve, reject) => {
     sendEmail(
@@ -120,8 +133,8 @@ const sendReservationEditedEmail = (userEmail, userName, eventName, updatedEvent
         <p>Your room reservation request for <strong>${eventName}</strong> has been updated.</p>
         <p>Updated Details:</p>
         <ul>
-          <li><strong>Date:</strong> ${updatedEventDate}</li>
-          <li><strong>Time:</strong> ${updatedEventTime}</li>
+          <li><strong>Date:</strong> ${eventDate}</li>
+          <li><strong>Time:</strong> ${eventTime}</li>
           <li><strong>Room(s):</strong> ${updatedRoomNames.join(', ')}</li>
         </ul>
         <p>If you did not request this change, please contact us immediately.</p>

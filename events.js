@@ -618,14 +618,14 @@ router.post('/addEventWithRooms', async (req, res) => {
     // If this is an admin request, check if they have entered an alternate email, and if so use this
     // If this is a user request, add the user's email to the attendee's list
     const eventAttendees = isAdmin ?
-    [
-      otherEmail && {email: otherEmail},
-      ...roomAttendees
-    ] : 
-    [
-      {email: userEmail}
-    ]
-    ;
+      [
+        otherEmail && { email: otherEmail },
+        ...roomAttendees
+      ] :
+      [
+        { email: userEmail }
+      ]
+      ;
 
     // Create the event object
     const event = {
@@ -758,8 +758,8 @@ router.post('/approveEvent', async (req, res) => {
       emailDetails.userEmail,
       emailDetails.userName,
       emailDetails.eventName,
-      emailDetails.eventDate,
-      emailDetails.eventTime,
+      emailDetails.eventStart,
+      emailDetails.eventEnd,
       emailDetails.roomNames
     ).catch((err) => console.error('Email sending failed:', err));
 
@@ -791,8 +791,8 @@ router.post('/quickApprove', async (req, res) => {
         emailDetails.userEmail,
         emailDetails.userName,
         emailDetails.eventName,
-        emailDetails.eventDate,
-        emailDetails.eventTime,
+        emailDetails.eventStart,
+        emailDetails.eventEnd,
         emailDetails.roomNames
       ).catch((err) => console.error('Email sending failed:', err));;
     }
@@ -883,8 +883,8 @@ router.post('/editEvent', async (req, res) => {
         emailDetails.userEmail,
         emailDetails.userName,
         emailDetails.eventName,
-        emailDetails.eventDate,
-        emailDetails.eventTime,
+        emailDetails.eventStart,
+        emailDetails.eventEnd,
         emailDetails.roomNames
       ).then(() => console.log('Email sent successfully in the background'))
         .catch((err) => console.error('Fire-and-forget email error:', err));
