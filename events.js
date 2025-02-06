@@ -133,7 +133,7 @@ async function getUserEvents(calendar, calendarId, userEmail) {
         eventId: currEvent.id,
       })
       const instances = instancesResponse.data.items;
-  
+
       currEvent.instances = instances.map((e) => unpackExtendedProperties(e));
     }
   }
@@ -593,7 +593,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 // MAIN ROOM REQUEST FUNCTION
 router.post('/addEventWithRooms', async (req, res) => {
   console.log("Incoming event request");
-  const { eventName, location, description, congregation, groupName, groupLeader, numPeople, startDateTime, endDateTime, rooms, userEmail, rRule, isAdmin } = req.body;
+  const { eventName, location, description, congregation, groupName, groupLeader, numPeople, startDateTime, endDateTime, rooms, userEmail, rRule, isAdmin, otherEmail } = req.body;
 
   if (!eventName || !startDateTime || !endDateTime || !rooms || rooms.length === 0) {
     return res.status(400).send('Missing required fields');
@@ -615,6 +615,18 @@ router.post('/addEventWithRooms', async (req, res) => {
     );
     console.log(roomAttendees)
 
+    // If this is an admin request, check if they have entered an alternate email, and if so use this
+    // If this is a user request, add the user's email to the attendee's list
+    const eventAttendees = isAdmin ?
+    [
+      otherEmail && {email: otherEmail},
+      ...roomAttendees
+    ] : 
+    [
+      {email: userEmail}
+    ]
+    ;
+
     // Create the event object
     const event = {
       summary,
@@ -628,10 +640,7 @@ router.post('/addEventWithRooms', async (req, res) => {
         dateTime: endDateTime,
         timeZone: 'America/Los_Angeles',
       },
-      attendees: [
-        { email: userEmail }, // Add the user as an attendee
-        ...(isAdmin ? roomAttendees : [])
-      ],
+      attendees: eventAttendees,
       reminders: {
         useDefault: false,
         overrides: [
