@@ -105,6 +105,7 @@
     "range-parser": "^1.2.1",
     "raw-body": "^2.5.2",
     "redis": "^4.7.0",
+    "rrule": "^2.8.1",
     "safe-buffer": "^5.2.1",
     "safer-buffer": "^2.1.2",
     "send": "^0.18.0",

@@ -1,5 +1,6 @@
 const express = require('express');
 const { google } = require('googleapis');
+const { RRule } = require('rrule');
 const { DateTime } = require('luxon');
 const router = express.Router();
 const fs = require('fs');
@@ -78,7 +79,7 @@ function extractRooms(input) {
 
 // Check Availability of rooms given a certain time frame
 // Returns list of available rooms
-const checkAvailability = async (startDateTime, endDateTime) => {
+const checkAvailability = async (startDateTime, endDateTime, rRule) => {
   if (!startDateTime || !endDateTime) {
     throw new Error('Missing startDateTime or endDateTime');
   }
@@ -88,29 +89,71 @@ const checkAvailability = async (startDateTime, endDateTime) => {
   const startTime = new Date(startDateTime);
   const endTime = new Date(endDateTime);
 
-  console.log('Times converted', startTime.toLocaleTimeString(), endTime.toLocaleTimeString())
+  console.log('Times converted', startTime.toLocaleTimeString(), endTime.toLocaleTimeString());
+  
+  let instances = [{ start: startTime, end: endTime}];
 
-  // Get approved and pending event conflicts
-  const approvedConflicts = await listEvents(APPROVED_CALENDAR_ID, auth, startTime, endTime);
-  const pendingConflicts = await listEvents(PENDING_APPROVAL_CALENDAR_ID, auth, startTime, endTime);
+  if (rRule) {
+    console.log("Recurring event detected, expanding RRule");
+    const rule = RRule.fromString(rRule);
+    const occurrences = rule.between(startTime, new Date(startTime.getFullYear() + 1, 11, 31), true);
 
-  // Collect locations from conflicts
-  const locations = approvedConflicts.map(conflict => conflict.location);
+    instances = occurrences.map(occurrence => ({
+      start: occurrence,
+      end: new Date(occurrence.getTime() + (endTime - startTime)),
+    }));
+  }
 
-  // Extract booked rooms from locations
-  const bookedLocations = locations.flatMap(location => extractRooms(location));
+  let conflicts = [];
 
-  // Remove duplicates and flatten the list
-  const combinedList = [...new Set(bookedLocations.flat())];
+  for (let instance of instances) {
+    const approvedConflicts = await listEvents(APPROVED_CALENDAR_ID, auth, instance.start, instance.end);
 
-  // Get available rooms by filtering out booked rooms
-  const availableRooms = Object.keys(ROOM_IDS).filter(room => !combinedList.includes(room));
+    const allConflicts = [...approvedConflicts];
+    const bookedRooms = new Set(allConflicts.flatMap(conflict => extractRooms(conflict.location)));
 
-  return availableRooms;
+    if (bookedRooms.size > 0) {
+      conflicts.push({ start: instance.start, end: instance.end, bookedRooms: Array.from(bookedRooms) });
+    }
+  }
+
+  return conflicts
+
+  // // Get approved and pending event conflicts
+  // const approvedConflicts = await listEvents(APPROVED_CALENDAR_ID, auth, startTime, endTime);
+  // const pendingConflicts = await listEvents(PENDING_APPROVAL_CALENDAR_ID, auth, startTime, endTime);
+
+  // // Collect locations from conflicts
+  // const locations = approvedConflicts.map(conflict => conflict.location);
+
+  // // Extract booked rooms from locations
+  // const bookedLocations = locations.flatMap(location => extractRooms(location));
+
+  // // Remove duplicates and flatten the list
+  // const combinedList = [...new Set(bookedLocations.flat())];
+
+  // // Get available rooms by filtering out booked rooms
+  // const availableRooms = Object.keys(ROOM_IDS).filter(room => !combinedList.includes(room));
+
+  // return availableRooms;
 };
 
-async function getUserEvents(calendar, calendarId, userEmail) {
+async function getUserEvents(calendar, calendarId, userEmail, history) {
   const now = new Date();
+
+  const queryOptions = {
+    calendarId: calendarId, // or your specific calendar ID
+    singleEvents: false,
+    q: userEmail, // Search by user email in attendees
+  };
+
+  if (history) {
+    // Get all past events
+    queryOptions.timeMax = now.toISOString();
+  } else {
+    // Get all future events
+    queryOptions.timeMin = now.toISOString()
+  }
 
   const response = await calendar.events.list({
     calendarId: calendarId, // or your specific calendar ID
@@ -152,13 +195,14 @@ router.get('/userEvents', async (req, res) => {
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
-    const pendingEvents = await getUserEvents(calendar, PENDING_APPROVAL_CALENDAR_ID, userEmail);
-    const approvedEvents = await getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail);
-    const proposedEvents = await getUserEvents(calendar, PROPOSED_CHANGES_CALENDAR_ID, userEmail);
+    const pendingEvents = await getUserEvents(calendar, PENDING_APPROVAL_CALENDAR_ID, userEmail, false);
+    const approvedEvents = await getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail, false);
+    const proposedEvents = await getUserEvents(calendar, PROPOSED_CHANGES_CALENDAR_ID, userEmail, false);
+    const pastEvents = await getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail, true);
     console.log(proposedEvents);
     const result = (pendingEvents.length === 0 && approvedEvents.length === 0 && proposedEvents.length === 0)
       ? null :
-      { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed': proposedEvents };
+      { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed': proposedEvents, 'history': pastEvents };
 
     console.log("++ /userEvents events:", result);
     res.status(200).json(result);

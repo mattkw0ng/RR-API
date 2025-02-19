@@ -10,12 +10,14 @@ const RedisStore = require('connect-redis').default;
 const { createClient } = require('redis');
 const cookieParser = require('cookie-parser')
 const { authorize } = require("./utils/authorize");
+const { watchCalendar } = require("./utils/webhook-utils");
 
 // Import routes
 const authRoutes = require('./auth');
 const eventRoutes = require('./events');
 const roomsRoutes = require('./rooms');
 const emailRoutes = require('./routes/email');
+const webhookRoutes = require('./routes/webhook')
 const { CLIENT_URL } = require('./config/config');
 
 // Load credentials from JSON
@@ -52,11 +54,11 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-      sameSite: 'lax', // This is important for cross-origin requests
-      domain: '.sjcac.org',
-      secure: true, // This should be true if you're using HTTPS
-      httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript
-      maxAge: 1000 * 60 * 60 * 24, // Set cookie expiration (optional, e.g., 24 hours)
+    sameSite: 'lax', // This is important for cross-origin requests
+    domain: '.sjcac.org',
+    secure: true, // This should be true if you're using HTTPS
+    httpOnly: true, // Ensure cookie is only sent via HTTP(S), not client-side JavaScript
+    maxAge: 1000 * 60 * 60 * 24, // Set cookie expiration (optional, e.g., 24 hours)
   }
 }));
 
@@ -102,6 +104,7 @@ app.use('/api/', authRoutes);
 app.use('/api/', eventRoutes);
 app.use('/api/', roomsRoutes.router);
 app.use('/api/email', emailRoutes);
+app.use('/', webhookRoutes);
 
 app.get('/test', async (req, res) => {
   res.send("Hello World!!");
