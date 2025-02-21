@@ -30,6 +30,9 @@ process.env.CLIENT_ID = client_id;
 process.env.CLIENT_SECRET = client_secret;
 process.env.REFRESH_TOKEN = refresh_token;
 process.env.EMAIL = 'rooms@sjcac.org';
+const PENDING_APPROVAL_CALENDAR_ID = process.env.PENDING_APPROVAL_CALENDAR_ID;
+const APPROVED_CALENDAR_ID = process.env.APPROVED_CALENDAR_ID;
+const PROPOSED_CHANGES_CALENDAR_ID = process.env.PROPOSED_CHANGES_CALENDAR_ID;
 
 // CORS config
 const corsOptions = {
@@ -114,6 +117,20 @@ app.use((req, res) => {
   console.warn(`Blocked request to undefined path: ${req.method} ${req.originalUrl}`);
   res.status(403).send('Forbidden: This path is not allowed.');
 });
+
+// Setup Google Calendar Webhook for updating events
+(async () => {
+  try {
+    console.log("Setting up Webhooks")
+    await watchCalendar(APPROVED_CALENDAR_ID);
+    await watchCalendar(PENDING_APPROVAL_CALENDAR_ID);
+    await watchCalendar(PROPOSED_CHANGES_CALENDAR_ID);
+    
+    console.log("Google Calendar Webhook is active");
+  } catch (error) {
+    console.error("Failed to start Google Calendar Webhook:", error);
+  }
+})();
 
 app.listen(PORT, () => {
   authorize();

@@ -11,7 +11,7 @@ async function watchCalendar(calendarId) {
     requestBody: {
       id: `watch-${calendarId}-${Date.now()}`, // Unique channel ID
       type: 'web_hook',
-      address: 'https://your-domain.com/webhook', // Your webhook endpoint
+      address: 'https://api.rooms.sjcac.org/webhook', // Your webhook endpoint
       params: { ttl: 604800 } // Max 7 days (must renew periodically)
     },
   });
