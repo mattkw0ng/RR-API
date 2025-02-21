@@ -5,11 +5,12 @@ const { pool } = require('../db');
 async function watchCalendar(calendarId) {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
+  const channelID = `watch-${calendarId}-${Date.now()}`;
 
   const response = await calendar.events.watch({
     calendarId: calendarId,
     requestBody: {
-      id: `watch-${calendarId}-${Date.now()}`, // Unique channel ID
+      id: channelID, // Unique channel ID
       type: 'web_hook',
       address: 'https://api.rooms.sjcac.org/webhook', // Your webhook endpoint
       params: { ttl: 604800 } // Max 7 days (must renew periodically)
