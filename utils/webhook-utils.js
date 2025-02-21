@@ -6,6 +6,7 @@ async function watchCalendar(calendarId) {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
   const channelID = `watch-${calendarId}-${Date.now()}`;
+  console.log(channelID);
 
   const response = await calendar.events.watch({
     calendarId: calendarId,
