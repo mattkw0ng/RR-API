@@ -1,6 +1,6 @@
 const { google } = require('googleapis');
 const { authorize } = require('./authorize');
-const { pool } = require('../db');
+const pool = require('../db');
 
 async function watchCalendar(calendarId) {
   const auth = await authorize();
