@@ -22,6 +22,32 @@ async function watchCalendar(calendarId) {
   });
 
   console.log("Watch request successful:", response.data);
+
+  const resourceId= response.data.resourceId;
+
+  await saveResourceIdMapping(resourceId, calendarId, channelId);
+  console.log(`🔗 Stored mapping: ${resourceId} → ${calendarId}`);
+}
+
+async function saveResourceIdMapping(resourceId, calendarId, channelId) {
+  try {
+    await pool.query(
+      `INSERT INTO watch_mapping (resource_id, calendar_id, channel_id, created_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (resource_id) DO UPDATE
+       SET calendar_id = EXCLUDED.calendar_id, channel_id = EXCLUDED.channel_id, created_at = NOW()`,
+      [resourceId, calendarId, channelId]
+    );
+    console.log(`✅ Saved resourceId mapping: ${resourceId} → ${calendarId}`);
+  } catch (error) {
+    console.error("❌ Error saving resourceId mapping:", error);
+  }
+}
+
+async function getCalendarIdByResourceId(resourceId) {
+  const result = await pool.query("SELECT calendar_id FROM watch_mapping WHERE resource_id = $1", [resourceId]);
+
+  return result.rows.length ? result.rows[0].calendar_id : null;
 }
 
 async function syncCalendarChanges(syncToken, calendarId) {
@@ -59,7 +85,7 @@ async function storeSyncToken(syncToken, calendarId) {
   )
 }
 
-async function getStoredSyncToken() {
+async function getStoredSyncToken(calendarId) {
   const result = await pool.query(`SELECT sync_token FROM google_sync_tokens WHERE calendar_id = $1`, [calendarId]);
   return result.rows[0]?.sync_token || null;
 }
@@ -68,5 +94,7 @@ module.exports = {
   watchCalendar,
   syncCalendarChanges,
   storeSyncToken,
-  getStoredSyncToken
+  getStoredSyncToken,
+  saveResourceIdMapping,
+  getCalendarIdByResourceId,
 }
