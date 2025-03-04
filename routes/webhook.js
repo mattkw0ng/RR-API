@@ -25,10 +25,10 @@ router.post('/webhook', async (req, res) => {
 
   if (resourceState === 'sync') {
     console.log("Google Calendar Sync Needed");
-    await syncCalendarChanges(syncToken);
+    await syncCalendarChanges(syncToken, calendarId);
   } else {
     console.log("Change detected, updating events...");
-    await syncCalendarChanges(syncToken);
+    await syncCalendarChanges(syncToken, calendarId);
   }
 
   res.status(200).send(); // Always respond with 200 OK
