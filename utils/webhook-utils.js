@@ -23,7 +23,7 @@ async function watchCalendar(calendarId) {
 
   console.log("Watch request successful:", response.data);
 
-  const resourceId= response.data.resourceId;
+  const resourceId = response.data.resourceId;
 
   await saveResourceIdMapping(resourceId, calendarId, channelId);
   console.log(`🔗 Stored mapping: ${resourceId} → ${calendarId}`);
@@ -50,14 +50,69 @@ async function getCalendarIdByResourceId(resourceId) {
   return result.rows.length ? result.rows[0].calendar_id : null;
 }
 
+async function fullCalendarSync(calendarId) {
+  const auth = await authorize();
+  const calendar = google.calendar({ version: 'v3', auth });
+
+  try {
+    console.log(`Performing full sync for calendar: ${calendarId}`);
+
+    let allEvents = [];
+    let nextPageToken = null;
+    const now = new Date();
+    const sixMonthsLater = new Date();
+    sixMonthsLater.setMonth(now.getMonth() + 6);
+
+    // Fetch all events using pagination
+    do {
+      const response = await calendar.events.list({
+        calendarId: calendarId,
+        singleEvents: true,
+        orderBy: "startTime",
+        timeMin: now.toISOString(),
+        timeMax: sixMonthsLater.toISOString(),
+        pageToken: nextPageToken,
+      });
+
+      allEvents.push(...response.data.items);
+      nextPageToken = response.data.nextPageToken;
+    } while (nextPageToken);
+
+    console.log(`Full sync fetched ${allEvents.length} events for calendar ${calendarId}`);
+
+    // Store fetched events in the database
+    await storeEvents(allEvents, calendarId);
+
+    // Store the new sync token for future incremental updates
+    if (allEvents.length > 0 && allEvents[0].nextSyncToken) {
+      await storeSyncToken(allEvents[0].nextSyncToken, calendarId);
+      console.log("New sync token stored successfully");
+    } else {
+      console.warn("No sync token available after full sync");
+    }
+
+  } catch (error) {
+    console.error(`Error during full sync for ${calendarId}:`, error);
+  }
+}
+
+
 async function syncCalendarChanges(syncToken, calendarId) {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth })
+
+  const now = new Date();
+  const sixMonthsLater = new Date();
+  sixMonthsLater.setMonth(now.getMonth() + 6);
 
   try {
     const response = await calendar.events.list({
       calendarId: calendarId,
       syncToken: syncToken,
+      singleEvents: true,
+      orderBy: 'startTime',
+      timeMin: now.toISOString(),
+      timeMax: sixMonthsLater.toISOString(),
     });
 
     console.log("UpdatedEvents", response.data.items);
@@ -66,6 +121,7 @@ async function syncCalendarChanges(syncToken, calendarId) {
       await storeSyncToken(response.data.nextSyncToken, calendarId);
     }
 
+    await storeEvents(response.data.items, calendarId);
   } catch (error) {
     if (error.code === 410) {
       console.log("Sync token expired, full sync required...");
@@ -90,6 +146,46 @@ async function getStoredSyncToken(calendarId) {
   return result.rows[0]?.sync_token || null;
 }
 
+async function storeEvents(eventList, calendarId) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    for (const event of eventList) {
+      const { id: eventId, start, end, recurrence, attendees, extendedProperties } = event;
+
+      const startTime = new Date(start.dateTime).toISOString();
+      const endTime = new Date(end.dateTime).toISOString();
+      const recurrenceRule = recurrence ? recurrence.join(';') : null;
+
+      let rooms = [];
+      if (extendedProperties?.private?.rooms) {
+        rooms = JSON.parse(extendedProperties.private.rooms).map(r => r.email);
+      } else if (attendees) {
+        rooms = attendees.filter(a => a.resource).map(a => a.email);
+      }
+
+      await client.query(
+        `INSERT INTO events (event_id, calendar_id, start_time, end_time, recurrence_rule, rooms, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        ON CONFLICT (event_id) DO UPDATE
+        SET start_time = EXCLUDED.start_time,
+            end_time = EXCLUDED.end_time,
+            recurrence_rule = EXCLUDED.recurrence_rule,
+            rooms = EXCLUDED.rooms,
+            updated_at = NOW()
+        `, [eventId, calendarId, startTime, endTime, recurrenceRule, rooms]
+      )
+    }
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("error storing events", error);
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   watchCalendar,
   syncCalendarChanges,
@@ -97,4 +193,5 @@ module.exports = {
   getStoredSyncToken,
   saveResourceIdMapping,
   getCalendarIdByResourceId,
+  storeEvents,
 }
