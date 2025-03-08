@@ -10,8 +10,7 @@ const RedisStore = require('connect-redis').default;
 const { createClient } = require('redis');
 const cookieParser = require('cookie-parser')
 const { authorize } = require("./utils/authorize");
-const { watchCalendar } = require("./utils/webhook-utils");
-const { syncAllCalendarsOnStartup } = require("./utils/calendarSync"); 
+const { watchCalendar, syncAllCalendarsOnStartup } = require("./utils/webhook-utils");
 
 // Import routes
 const authRoutes = require('./auth');
@@ -123,7 +122,7 @@ app.use((req, res) => {
 (async () => {
   try {
     await syncAllCalendarsOnStartup();
-    
+
     console.log("Setting up Webhooks")
     const calendars = [APPROVED_CALENDAR_ID, PENDING_APPROVAL_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID];
     
