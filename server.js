@@ -11,6 +11,7 @@ const { createClient } = require('redis');
 const cookieParser = require('cookie-parser')
 const { authorize } = require("./utils/authorize");
 const { watchCalendar } = require("./utils/webhook-utils");
+const { syncAllCalendarsOnStartup } = require("./utils/calendarSync"); 
 
 // Import routes
 const authRoutes = require('./auth');
@@ -121,10 +122,14 @@ app.use((req, res) => {
 // Setup Google Calendar Webhook for updating events
 (async () => {
   try {
+    await syncAllCalendarsOnStartup();
+    
     console.log("Setting up Webhooks")
-    await watchCalendar(APPROVED_CALENDAR_ID);
-    await watchCalendar(PENDING_APPROVAL_CALENDAR_ID);
-    await watchCalendar(PROPOSED_CHANGES_CALENDAR_ID);
+    const calendars = [APPROVED_CALENDAR_ID, PENDING_APPROVAL_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID];
+    
+    for (const calendarId of calendars) {
+      await watchCalendar(calendarId);
+    }
     
     console.log("Google Calendar Webhook is active");
   } catch (error) {

@@ -96,6 +96,19 @@ async function fullCalendarSync(calendarId) {
   }
 }
 
+async function syncAllCalendarsOnStartup() {
+  console.log("Starting full calendar sync on server startup...");
+
+  const calendarIds = [PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID];
+
+  for (const calendarId of calendarIds) {
+    await fullCalendarSync(calendarId);
+  }
+
+  console.log("Initial full sync for all calendars completed.");
+}
+
+
 
 async function syncCalendarChanges(syncToken, calendarId) {
   const auth = await authorize();
@@ -109,10 +122,6 @@ async function syncCalendarChanges(syncToken, calendarId) {
     const response = await calendar.events.list({
       calendarId: calendarId,
       syncToken: syncToken,
-      singleEvents: true,
-      orderBy: 'startTime',
-      timeMin: now.toISOString(),
-      timeMax: sixMonthsLater.toISOString(),
     });
 
     console.log("UpdatedEvents", response.data.items);
@@ -121,7 +130,7 @@ async function syncCalendarChanges(syncToken, calendarId) {
       await storeSyncToken(response.data.nextSyncToken, calendarId);
     }
 
-    await storeEvents(response.data.items, calendarId);
+    await processEvents(response.data.items, calendarId);
   } catch (error) {
     if (error.code === 410) {
       console.log("Sync token expired, full sync required...");
@@ -186,6 +195,34 @@ async function storeEvents(eventList, calendarId) {
   }
 }
 
+async function processEvents(events, calendarId) {
+  const auth = await authorize();
+  const calendar = google.calendar({ version: 'v3', auth });
+
+  let expandedEvents = [];
+
+  for (const event of events) {
+    if (event.recurrence) {
+      try {
+        const instancesResponse = await calendar.events.instances({
+          calendarId: calendarId,
+          eventId: event.id,
+        })
+
+        console.log(`Expanded ${instancesResponse.data.items.length} instances for event: ${event.id}`);
+
+        expandedEvents.push(...instancesResponse.data.items);
+      } catch (error) {
+        console.error(`Error expanding instances for event ${event.id}:`, error);
+      }
+    } else {
+      expandedEvents.push(event);
+    }
+  }
+
+  storeEvents(expandedEvents, calendarId);
+}
+
 module.exports = {
   watchCalendar,
   syncCalendarChanges,
@@ -194,4 +231,6 @@ module.exports = {
   saveResourceIdMapping,
   getCalendarIdByResourceId,
   storeEvents,
+  processEvents,
+  syncAllCalendarsOnStartup,
 }
