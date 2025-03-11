@@ -164,6 +164,9 @@ async function storeEvents(eventList, calendarId) {
   try {
     await client.query("BEGIN");
     for (const event of eventList) {
+      if (event.status !== 'confirmed') {
+        next();
+      }
       console.log(event);
       const { id: eventId, start, end, recurrence, attendees, extendedProperties } = event;
 
