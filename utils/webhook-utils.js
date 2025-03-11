@@ -48,6 +48,24 @@ async function saveResourceIdMapping(resourceId, calendarId, channelId) {
   }
 }
 
+async function stopExistingWatches(calendarId) {
+  const auth = await authorize();
+  const calendar = google.calendar({ version: 'v3', auth });
+
+  const result = await pool.query("SELECT channel_id FROM watch_mapping WHERE calendar_id = $1", [calendarId]);
+
+  if (result.rows.length > 0) {
+    const { channel_id } = result.rows[0];
+    console.log(`🛑 Stopping existing watch for ${calendarId} with channel ID: ${channel_id}`);
+    
+    await calendar.channels.stop({
+      requestBody: { id: channel_id },
+    });
+
+    await pool.query("DELETE FROM watch_mapping WHERE calendar_id = $1", [calendarId]);
+  }
+}
+
 async function getCalendarIdByResourceId(resourceId) {
   const result = await pool.query("SELECT calendar_id FROM watch_mapping WHERE resource_id = $1", [resourceId]);
 
@@ -108,6 +126,7 @@ async function syncAllCalendarsOnStartup() {
   const calendarIds = [PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID];
 
   for (const calendarId of calendarIds) {
+    await stopExistingWatches(calendarId);
     await fullCalendarSync(calendarId);
   }
 
@@ -130,7 +149,7 @@ async function syncCalendarChanges(syncToken, calendarId) {
       syncToken: syncToken,
     });
 
-    console.log("UpdatedEvents", response.data.items.length);
+    console.log("UpdatedEvents", response.data.items.length,  response.data.items.length);
 
     if (response.data.nextSyncToken) {
       await storeSyncToken(response.data.nextSyncToken, calendarId);
