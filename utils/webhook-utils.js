@@ -164,25 +164,23 @@ async function storeEvents(eventList, calendarId) {
   try {
     await client.query("BEGIN");
     for (const event of eventList) {
-      if (event.status !== 'confirmed') {
-        next();
-      }
-      console.log(event);
-      const { id: eventId, start, end, recurrence, attendees, extendedProperties } = event;
+      if (event.status === 'confirmed') {
+        console.log(event);
+        const { id: eventId, start, end, recurrence, attendees, extendedProperties } = event;
 
-      const startTime = new Date(start.dateTime).toISOString();
-      const endTime = new Date(end.dateTime).toISOString();
-      const recurrenceRule = recurrence ? recurrence.join(';') : null;
+        const startTime = new Date(start.dateTime).toISOString();
+        const endTime = new Date(end.dateTime).toISOString();
+        const recurrenceRule = recurrence ? recurrence.join(';') : null;
 
-      let rooms = [];
-      if (extendedProperties?.private?.rooms) {
-        rooms = JSON.parse(extendedProperties.private.rooms).map(r => r.email);
-      } else if (attendees) {
-        rooms = attendees.filter(a => a.resource).map(a => a.email);
-      }
+        let rooms = [];
+        if (extendedProperties?.private?.rooms) {
+          rooms = JSON.parse(extendedProperties.private.rooms).map(r => r.email);
+        } else if (attendees) {
+          rooms = attendees.filter(a => a.resource).map(a => a.email);
+        }
 
-      await client.query(
-        `INSERT INTO events (event_id, calendar_id, start_time, end_time, recurrence_rule, rooms, updated_at)
+        await client.query(
+          `INSERT INTO events (event_id, calendar_id, start_time, end_time, recurrence_rule, rooms, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, NOW())
         ON CONFLICT (event_id) DO UPDATE
         SET start_time = EXCLUDED.start_time,
@@ -191,7 +189,8 @@ async function storeEvents(eventList, calendarId) {
             rooms = EXCLUDED.rooms,
             updated_at = NOW()
         `, [eventId, calendarId, startTime, endTime, recurrenceRule, rooms]
-      )
+        )
+      }
     }
 
     await client.query("COMMIT");
