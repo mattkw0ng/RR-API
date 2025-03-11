@@ -2,6 +2,10 @@ const { google } = require('googleapis');
 const { authorize } = require('./authorize');
 const pool = require('../db');
 
+const PENDING_APPROVAL_CALENDAR_ID = process.env.PENDING_APPROVAL_CALENDAR_ID;
+const APPROVED_CALENDAR_ID = process.env.APPROVED_CALENDAR_ID;
+const PROPOSED_CHANGES_CALENDAR_ID = process.env.PROPOSED_CHANGES_CALENDAR_ID;
+
 async function watchCalendar(calendarId) {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
