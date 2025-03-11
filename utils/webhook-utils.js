@@ -52,19 +52,36 @@ async function stopExistingWatches(calendarId) {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
 
-  const result = await pool.query("SELECT channel_id FROM watch_mapping WHERE calendar_id = $1", [calendarId]);
+  // Fetch both channel_id and resource_id from the database
+  const result = await pool.query("SELECT channel_id, resource_id FROM watch_mapping WHERE calendar_id = $1", [calendarId]);
 
   if (result.rows.length > 0) {
-    const { channel_id } = result.rows[0];
-    console.log(`🛑 Stopping existing watch for ${calendarId} with channel ID: ${channel_id}`);
-    
-    await calendar.channels.stop({
-      requestBody: { id: channel_id },
-    });
+    const { channel_id, resource_id } = result.rows[0];
 
-    await pool.query("DELETE FROM watch_mapping WHERE calendar_id = $1", [calendarId]);
+    console.log(`🛑 Stopping existing watch for ${calendarId} with channel ID: ${channel_id} and resource ID: ${resource_id}`);
+
+    try {
+      // Stop the existing watch (requires both channel_id and resource_id)
+      await calendar.channels.stop({
+        requestBody: {
+          id: channel_id,  // Unique channel ID
+          resourceId: resource_id, // Google-assigned resource ID
+        },
+      });
+
+      console.log(`✅ Successfully stopped watch for ${calendarId}`);
+
+      // Remove the mapping from the database
+      await pool.query("DELETE FROM watch_mapping WHERE calendar_id = $1", [calendarId]);
+
+    } catch (error) {
+      console.error(`❌ Error stopping watch for ${calendarId}:`, error);
+    }
+  } else {
+    console.log(`ℹ️ No existing watch found for ${calendarId}`);
   }
 }
+
 
 async function getCalendarIdByResourceId(resourceId) {
   const result = await pool.query("SELECT calendar_id FROM watch_mapping WHERE resource_id = $1", [resourceId]);
