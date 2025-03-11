@@ -128,7 +128,7 @@ async function syncCalendarChanges(syncToken, calendarId) {
       syncToken: syncToken,
     });
 
-    console.log("UpdatedEvents", response.data.items);
+    console.log("UpdatedEvents", response.data.items.length);
 
     if (response.data.nextSyncToken) {
       await storeSyncToken(response.data.nextSyncToken, calendarId);
@@ -165,7 +165,6 @@ async function storeEvents(eventList, calendarId) {
     await client.query("BEGIN");
     for (const event of eventList) {
       if (event.status === 'confirmed') {
-        console.log(event);
         const { id: eventId, start, end, recurrence, attendees, extendedProperties } = event;
 
         const startTime = new Date(start.dateTime).toISOString();
