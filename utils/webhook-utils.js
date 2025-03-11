@@ -164,6 +164,7 @@ async function storeEvents(eventList, calendarId) {
   try {
     await client.query("BEGIN");
     for (const event of eventList) {
+      console.log(event);
       const { id: eventId, start, end, recurrence, attendees, extendedProperties } = event;
 
       const startTime = new Date(start.dateTime).toISOString();
