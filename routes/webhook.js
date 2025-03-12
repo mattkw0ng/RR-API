@@ -21,7 +21,7 @@ router.post('/webhook', async (req, res) => {
 
   console.log(`Syncing changes for calendar ID: ${calendarId}`);
 
-  const syncToken = await getStoredSyncToken(); // Retrieve last sync token from DB
+  const syncToken = await getStoredSyncToken(calendarId); // Retrieve last sync token from DB
 
   if (resourceState === 'sync') {
     console.log("Google Calendar Sync Needed");
