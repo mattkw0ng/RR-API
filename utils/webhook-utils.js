@@ -86,7 +86,6 @@ async function stopExistingWatches(calendarId) {
 async function getCalendarIdByResourceId(resourceId) {
   console.log("~~ gettingCalendarIdByResourceID: ", resourceId);
   const result = await pool.query("SELECT calendar_id FROM watch_mapping WHERE resource_id = $1", [resourceId]);
-  console.log("~~ gettingCalendarIdByResourceID: ", result);
   return result.rows.length ? result.rows[0].calendar_id : null;
 }
 
@@ -201,7 +200,6 @@ async function storeSyncToken(syncToken, calendarId) {
 async function getStoredSyncToken(calendarId) {
   console.log(">> getStoredSyncToken for calendar: ", calendarId);
   const result = await pool.query(`SELECT sync_token FROM google_sync_tokens WHERE calendar_id = $1`, [calendarId]);
-  console.log(">> getStoredSyncTokenResult: ", result)
   return result.rows[0]?.sync_token || null;
 }
 
