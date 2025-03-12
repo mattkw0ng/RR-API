@@ -153,6 +153,7 @@ async function syncAllCalendarsOnStartup() {
 
 
 async function syncCalendarChanges(syncToken, calendarId) {
+  console.log("syncingn changes with google calendar | syncToken: ", syncToken);
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth })
 
@@ -166,7 +167,11 @@ async function syncCalendarChanges(syncToken, calendarId) {
       syncToken: syncToken,
     });
 
-    console.log("UpdatedEvents", response.data.items.length,  response.data.items.length);
+    const filtered = response.data.items.filter(e => 
+      e.end?.dateTime && new Date(e.end.dateTime) < sixMonthsLater
+    );
+
+    console.log("++ UpdatedEvents: ", response.data.items.length, " filtered: ", filtered.length);
 
     if (response.data.nextSyncToken) {
       await storeSyncToken(response.data.nextSyncToken, calendarId);
