@@ -199,6 +199,7 @@ async function storeSyncToken(syncToken, calendarId) {
 
 async function getStoredSyncToken(calendarId) {
   const result = await pool.query(`SELECT sync_token FROM google_sync_tokens WHERE calendar_id = $1`, [calendarId]);
+  console.log(">> getStoredSyncTokenResult: ", result)
   return result.rows[0]?.sync_token || null;
 }
 
