@@ -180,7 +180,7 @@ async function syncCalendarChanges(syncToken, calendarId) {
       await storeSyncToken(response.data.nextSyncToken, calendarId);
     }
 
-    // await processEvents(response.data.items, calendarId);
+    await processEvents(filtered, calendarId);
   } catch (error) {
     if (error.code === 410) {
       console.log("Sync token expired, full sync required...");
