@@ -83,9 +83,12 @@ async function stopExistingWatches(calendarId) {
 }
 
 
-async function getCalendarIdByResourceId(resourceId) {
+async function getCalendarIdByResourceId(resourceId, channelId) {
   console.log("~~ gettingCalendarIdByResourceID: ", resourceId);
-  const result = await pool.query("SELECT calendar_id FROM watch_mapping WHERE resource_id = $1", [resourceId]);
+  const result = await pool.query(
+    "SELECT calendar_id FROM watch_mapping WHERE resource_id = $1 AND channel_id = $2",
+    [resourceId, channelId]
+  );
   return result.rows.length ? result.rows[0].calendar_id : null;
 }
 

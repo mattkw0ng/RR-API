@@ -10,13 +10,14 @@ router.post('/webhook', async (req, res) => {
 
   const resourceState = req.headers['x-goog-resource-state'];
   const resourceId = req.headers['x-goog-resource-id'];
+  const channelId = req.headers['x-goog-channel-id']
   console.log("Resource ID: ", resourceId);
 
-  const calendarId = await getCalendarIdByResourceId(resourceId);
+  const calendarId = await getCalendarIdByResourceId(resourceId, channelId);
 
   if (!calendarId) {
-    console.error("No calendar found for resource ID:", resourceId);
-    return res.status(400).send("Invalid resource ID");
+    console.error("No calendar found for resource ID:", resourceId, " or calendar ID: ", channelId);
+    return res.status(400).send("Invalid resource ID or channel ID");
   }
 
   console.log(`Syncing changes for calendar ID: ${calendarId}`);
