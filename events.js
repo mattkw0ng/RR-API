@@ -534,9 +534,9 @@ router.get('/checkConflicts', async (req, res) => {
     const calendar = google.calendar({ version: 'v3', auth })
 
     const conflictsImproved = await checkForConflicts(JSON.parse(roomList), startDateTime, endDateTime, recurrence);
-    console.log('>> New Conflict Detection Results', conflictsImproved);
+    console.log('>> New Conflict Detection Results:', conflictsImproved);
     const conflicts = await getConflictsSimple(calendar, JSON.parse(roomList), startDateTime, endDateTime);
-
+    console.log('>> Old Conflict Detection Results:', conflicts);
     res.status(200).json(conflicts);
   } catch (error) {
     console.error('Error checking conflicts for event: ', startDateTime, endDateTime, roomList, error);

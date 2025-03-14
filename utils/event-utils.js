@@ -144,7 +144,6 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
     const values = [roomList, ...eventInstances.flatMap(({ start, end }) => [start, end])];
 
     const { rows } = await pool.query(query, values);
-    console.log('-- Conflicts found: ', rows);
     return rows; // Return list of conflicting events
   } catch (error) {
     console.error("Error checking conflicts:", error);
