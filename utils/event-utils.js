@@ -1,5 +1,8 @@
 const { authorize } = require('./authorize'); // Assuming you have an authorize function
+const { RRule, RRuleSet, rrulestr } = require("rrule");
 const { google } = require('googleapis');
+const { DateTime } = require('luxon');
+const pool = require('../db')
 require('dotenv').config()
 
 // Constants for your calendar IDs
@@ -40,6 +43,11 @@ const getNumPendingEvents = async () => {
   }
 };
 
+/**
+ * Extract various details from the event object that are required for the email functions
+ * @param {Object} event - The new event
+ * @returns {Object} Contains userEmail, userName, eventName, eventStart, eventEnd, roomNames 
+ */
 const extractEventDetailsForEmail = (event) => {
   if (!event) {
     throw new Error("Invalid event object");
@@ -61,10 +69,87 @@ const extractEventDetailsForEmail = (event) => {
   return { userEmail, userName, eventName, eventStart, eventEnd, roomNames };
 };
 
+/**
+ * Expands a recurring event into its individual instances.
+ * @param {String} start - ISO dateTime string
+ * @param {String} end - ISO dateTime string
+ * @param {String} recurrenceRule - rRule
+ * @returns {Array} List of expanded event instances with start & end times.
+ */
+function expandRecurringEvent(start, end, recurrenceRule) {
+  if (!recurrenceRule) {
+    return [{ start: start, end: end }]; // Return single instance for non-recurring events
+  }
+
+  const rule = rrulestr(recurrenceRule, {
+    dtstart: new Date(start),
+  });
+
+  const sixMonthsFromNow = DateTime.now().plus({ months: 6 }).toJSDate();
+
+  // Generate all instances up to 6 months ahead
+  const occurrences = rule.between(new Date(start), sixMonthsFromNow);
+
+  // Compute each instance's end time by adding the original duration
+  const duration = DateTime.fromISO(end).diff(DateTime.fromISO(start));
+
+  return occurrences.map((instance) => {
+    const instanceStart = DateTime.fromJSDate(instance).toISO();
+    const instanceEnd = DateTime.fromJSDate(instance).plus(duration).toISO();
+    return { start: instanceStart, end: instanceEnd };
+  });
+}
+
+/**
+ * Check for conflicts between an incoming event and stored events in the database.
+ * @param {Array} roomList - a list of calendarIDs associated with the event
+ * @param {String} start - ISO dateTime string
+ * @param {String} end - ISO dateTime string
+ * @param {String} recurrenceRule - rRule
+ * @returns {Array} List of conflicting events.
+ */
+async function checkForConflicts(roomList, start, end, recurrenceRule) {
+  if (!start || !end || !roomsList) {
+    throw new Error("Event must include start time, end time, and rooms.");
+  }
+
+  let eventInstances = [{ start, end }]; // Default for non-recurring events
+
+  // Expand recurring events
+  if (recurrenceRule) {
+    eventInstances = expandRecurringEvent(start, end, recurrenceRule);
+  }
+
+  // Convert instances to ISO format for DB queries
+  const instanceQueries = eventInstances.map(instance => ({
+    start: DateTime.fromISO(instance.start).toISO(),
+    end: DateTime.fromISO(instance.end).toISO()
+  }));
+
+  try {
+    const query = `
+      SELECT * FROM events
+      WHERE rooms && $1  -- Checks for overlap in room list (array) 
+      AND (
+        ${instanceQueries.map(({ start, end }) => `
+          (start_time < '${end}' AND end_time > '${start}')
+        `).join(" OR ")}
+      )
+    `;
+
+    const { rows } = await pool.query(query);
+    console.log('-- Conflicts found: ', rows)
+    return rows; // Return list of conflicting events
+  } catch (error) {
+    console.error("Error checking conflicts:", error);
+    throw error;
+  }
+}
 
 
 
 module.exports = {
   getNumPendingEvents,
   extractEventDetailsForEmail,
+  checkForConflicts,
 };

@@ -14,7 +14,7 @@ const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 const { authorize } = require("./utils/authorize");
 const { unpackExtendedProperties } = require('./utils/general');
-const { extractEventDetailsForEmail } = require('./utils/event-utils');
+const { extractEventDetailsForEmail, checkForConflicts } = require('./utils/event-utils');
 const {
   sendReservationReceivedEmail,
   sendReservationApprovedEmail,
@@ -522,7 +522,7 @@ async function getConflictsSimple(calendar, roomList, start, end) {
 }
 
 router.get('/checkConflicts', async (req, res) => {
-  const { startDateTime, endDateTime, roomList } = req.query;
+  const { startDateTime, endDateTime, roomList, recurrence } = req.query;
   console.log(req.query)
 
   if (!startDateTime || !endDateTime || !roomList) {
@@ -533,6 +533,8 @@ router.get('/checkConflicts', async (req, res) => {
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth })
 
+    const conflictsImproved = await checkForConflicts(JSON.parse(roomList), startDateTime, endDateTime, recurrence);
+    console.log('>> New Conflict Detection Results', conflictsImproved);
     const conflicts = await getConflictsSimple(calendar, JSON.parse(roomList), startDateTime, endDateTime);
 
     res.status(200).json(conflicts);

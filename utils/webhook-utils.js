@@ -13,7 +13,6 @@ async function watchCalendar(calendarId) {
 
   // Generate a valid and unique Channel ID
   const channelId = `watch-${safeCalendarId}-${Date.now()}`;
-  console.log(channelId);
 
   const response = await calendar.events.watch({
     calendarId: calendarId,
@@ -156,7 +155,6 @@ async function syncAllCalendarsOnStartup() {
 
 
 async function syncCalendarChanges(syncToken, calendarId) {
-  console.log("++ SyncCalendarChanges | syncToken: ", syncToken);
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth })
 
@@ -174,7 +172,7 @@ async function syncCalendarChanges(syncToken, calendarId) {
       e.end?.dateTime && new Date(e.end.dateTime) < sixMonthsLater
     );
 
-    console.log("++ UpdatedEvents: ", response.data.items.length, " filtered: ", filtered.length);
+    console.log("[syncCalendarChanges] UpdatedEvents: ", response.data.items.length, " filtered: ", filtered.length);
 
     if (response.data.nextSyncToken) {
       await storeSyncToken(response.data.nextSyncToken, calendarId);
@@ -201,7 +199,6 @@ async function storeSyncToken(syncToken, calendarId) {
 }
 
 async function getStoredSyncToken(calendarId) {
-  console.log(">> getStoredSyncToken for calendar: ", calendarId);
   const result = await pool.query(`SELECT sync_token FROM google_sync_tokens WHERE calendar_id = $1`, [calendarId]);
   return result.rows[0]?.sync_token || null;
 }
