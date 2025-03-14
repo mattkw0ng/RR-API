@@ -116,7 +116,7 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
   let eventInstances = [{ start: startDateTime, end: endDateTime }]; // Default for non-recurring events
 
   // Expand recurring events into separate instances
-  if (recurrenceRule && recurrenceRule !== 'FREQ=') {
+  if (recurrenceRule && recurrenceRule !== 'FREQ=' && recurrenceRule !== 'null') {
     eventInstances = expandRecurringEvent(startDateTime, endDateTime, recurrenceRule);
   }
 
