@@ -117,8 +117,11 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
 
   // Expand recurring events into separate instances
   if (recurrenceRule && recurrenceRule !== 'FREQ=' && recurrenceRule !== 'null') {
-    eventInstances = expandRecurringEvent(startDateTime, endDateTime, recurrenceRule);
+    const expandedInstances = expandRecurringEvent(startDateTime, endDateTime, recurrenceRule);
+    eventInstances = [ ...eventInstances, ...expandedInstances];
   }
+
+  console.log('>> expanded events: ', eventInstances);
 
   try {
     // Generate query conditions for each instance
