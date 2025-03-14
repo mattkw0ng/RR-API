@@ -535,9 +535,9 @@ router.get('/checkConflicts', async (req, res) => {
 
     const conflictsImproved = await checkForConflicts(JSON.parse(roomList), startDateTime, endDateTime, recurrence);
     console.log('>> New Conflict Detection Results:', conflictsImproved);
-    const conflicts = await getConflictsSimple(calendar, JSON.parse(roomList), startDateTime, endDateTime);
-    console.log('>> Old Conflict Detection Results:', conflicts);
-    res.status(200).json(conflicts);
+    // const conflicts = await getConflictsSimple(calendar, JSON.parse(roomList), startDateTime, endDateTime);
+    // console.log('>> Old Conflict Detection Results:', conflicts);
+    res.status(200).json(conflictsImproved);
   } catch (error) {
     console.error('Error checking conflicts for event: ', startDateTime, endDateTime, roomList, error);
     res.status(500).send('Error checking conflicts for event: ', startDateTime, endDateTime, roomList, error)
