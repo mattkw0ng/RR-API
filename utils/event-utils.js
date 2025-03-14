@@ -101,6 +101,27 @@ function expandRecurringEvent(start, end, recurrenceRule) {
 }
 
 /**
+ * Translates list of events into a list of rooms and their currently occupied dateTimes
+ * @param {Array} events - list of events taken from database
+ * @returns {Array} List of rooms and time ranges
+ */
+function groupEventsByRoom(events) {
+  const roomMap = new Map();
+
+  events.forEach(event => {
+    event.rooms.forEach(room => {
+      if (!roomMap.has(room)) {
+        roomMap.set(room, { room, times: [] });
+      }
+      roomMap.get(room).times.push({ start: event.start_time, end: event.end_time });
+    });
+  });
+
+  return Array.from(roomMap.values());
+}
+
+
+/**
  * Check for conflicts between an incoming event and stored events in the database.
  * @param {Array} roomList - a list of calendarIDs associated with the event
  * @param {String} startDateTime - ISO dateTime string
@@ -144,7 +165,7 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
     const values = [roomList, ...eventInstances.flatMap(({ start, end }) => [start, end])];
 
     const { rows } = await pool.query(query, values);
-    return rows; // Return list of conflicting events
+    return groupEventsByRoom(rows); // Return list of conflicting events
   } catch (error) {
     console.error("Error checking conflicts:", error);
     throw error;
