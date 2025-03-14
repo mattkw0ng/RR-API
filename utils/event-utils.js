@@ -109,37 +109,39 @@ function expandRecurringEvent(start, end, recurrenceRule) {
  * @returns {Array} List of conflicting events.
  */
 async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenceRule) {
-  if (!startDateTime || !endDateTime || !roomList || roomList.length === 0) {
+  if (!startDateTime || !endDateTime || !roomList.length) {
     throw new Error("Event must include start time, end time, and rooms.");
   }
 
-  // Expand recurring events into individual instances if applicable
-  let eventInstances = [{ start: startDateTime, end: endDateTime }];
+  let eventInstances = [{ start: startDateTime, end: endDateTime }]; // Default for non-recurring events
 
-  if (recurrenceRule && recurrenceRule !== 'FREQ=') {
+  // Expand recurring events into separate instances
+  if (recurrenceRule) {
     eventInstances = expandRecurringEvent(startDateTime, endDateTime, recurrenceRule);
   }
 
   try {
-    // Base query to check for conflicts
-    let query = `
+    // Generate query conditions for each instance
+    const instanceConditions = eventInstances.map((_, index) => `
+      (
+        (start_time < $${index * 2 + 2} AND end_time > $${index * 2 + 3}) -- Standard conflict check
+        OR (start_time >= $${index * 2 + 2} AND start_time < $${index * 2 + 3}) -- New event starts inside existing event
+        OR (end_time > $${index * 2 + 2} AND end_time <= $${index * 2 + 3}) -- New event ends inside existing event
+        OR (start_time <= $${index * 2 + 2} AND end_time >= $${index * 2 + 3}) -- New event fully overlaps existing event
+      )
+    `).join(" OR ");
+
+    const query = `
       SELECT * FROM events
-      WHERE rooms && $1 -- Check if any of the provided rooms overlap with stored event rooms
-      AND (
+      WHERE rooms && $1
+      AND (${instanceConditions})
     `;
 
-    // Dynamically generate conflict conditions for each instance
-    const conditions = eventInstances.map((_, index) => `(start_time < $${index * 2 + 2} AND end_time > $${index * 2 + 3})`);
-    query += conditions.join(" OR ") + ")";
+    // Flatten event instances into query values
+    const values = [roomList, ...eventInstances.flatMap(({ start, end }) => [start, end])];
 
-    // Query parameters: First parameter is the room list, then start and end times
-    const queryParams = [
-      roomList, // First parameter: an array of room calendar IDs
-      ...eventInstances.flatMap(({ start, end }) => [start, end]), // Insert start & end times dynamically
-    ];
-
-    console.log('>> checkForConflicts query: ', query, queryParams);
-    const { rows } = await pool.query(query, queryParams);
+    const { rows } = await pool.query(query, values);
+    console.log('-- Conflicts found: ', rows);
     return rows; // Return list of conflicting events
   } catch (error) {
     console.error("Error checking conflicts:", error);
