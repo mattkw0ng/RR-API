@@ -131,7 +131,6 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
     // Dynamically generate conflict conditions for each instance
     const conditions = eventInstances.map((_, index) => `(start_time < $${index * 2 + 2} AND end_time > $${index * 2 + 3})`);
     query += conditions.join(" OR ") + ")";
-    console.log('>> checkForConflicts query: ', query, queryParams);
 
     // Query parameters: First parameter is the room list, then start and end times
     const queryParams = [
@@ -139,6 +138,7 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
       ...eventInstances.flatMap(({ start, end }) => [start, end]), // Insert start & end times dynamically
     ];
 
+    console.log('>> checkForConflicts query: ', query, queryParams);
     const { rows } = await pool.query(query, queryParams);
     return rows; // Return list of conflicting events
   } catch (error) {
