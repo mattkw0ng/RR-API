@@ -118,24 +118,6 @@ const checkAvailability = async (startDateTime, endDateTime, rRule) => {
   }
 
   return conflicts
-
-  // // Get approved and pending event conflicts
-  // const approvedConflicts = await listEvents(APPROVED_CALENDAR_ID, auth, startTime, endTime);
-  // const pendingConflicts = await listEvents(PENDING_APPROVAL_CALENDAR_ID, auth, startTime, endTime);
-
-  // // Collect locations from conflicts
-  // const locations = approvedConflicts.map(conflict => conflict.location);
-
-  // // Extract booked rooms from locations
-  // const bookedLocations = locations.flatMap(location => extractRooms(location));
-
-  // // Remove duplicates and flatten the list
-  // const combinedList = [...new Set(bookedLocations.flat())];
-
-  // // Get available rooms by filtering out booked rooms
-  // const availableRooms = Object.keys(ROOM_IDS).filter(room => !combinedList.includes(room));
-
-  // return availableRooms;
 };
 
 async function getUserEvents(calendar, calendarId, userEmail, history) {
@@ -974,8 +956,8 @@ router.post('/filterRooms', async (req, res) => {
       return elem.room_name;
     })
     console.log("roomsTools.SearchRoom => Names", matchingRoomsNames);
-    const merged = availableRooms.filter((room) => {
-      return matchingRoomsNames.includes(room);
+    const merged = matchingRoomsNames.filter((room) => {
+      return !availableRooms.bookedRooms?.includes(room);
     })
     console.log("Res:", merged);
     res.json(merged);
