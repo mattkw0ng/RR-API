@@ -65,7 +65,7 @@ router.get('/rooms', async (req, res) => {
     
     result.rows.forEach((room) => {
       rooms[room.room_name] = {
-        resources: room.resources ? room.resources.split(', ') : [],
+        resources: room.resources ? room.resources : [],
         capacity: room.capacity,
         calendarID: room.calendar_id
       };
