@@ -43,7 +43,7 @@ async function GetRoomById(roomId) {
 }
 
 // TEST : get room data from database
-router.get('/rooms', async (req, res) => {
+router.get('/rooms-simple', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM rooms');
     res.json(result.rows);
@@ -52,6 +52,39 @@ router.get('/rooms', async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
+
+router.get('/rooms', async (req, res) => {
+  try {
+    // Query the database for room data
+    const result = await pool.query('SELECT * FROM rooms');
+
+    // Transform the data into the desired format
+    const rooms = {};
+    const roomsGrouped = {};
+    const roomListSimple = [];
+    
+    result.rows.forEach((room) => {
+      rooms[room.room_name] = {
+        resources: room.resources ? room.resources.split(', ') : [],
+        capacity: room.capacity,
+        calendarID: room.calendar_id
+      };
+      roomListSimple.push(room.room_name);
+
+      // Group rooms by building location
+      if (!roomsGrouped[room.building_location]) {
+        roomsGrouped[room.building_location] = [];
+      }
+      roomsGrouped[room.building_location].push(room.room_name);
+    });
+
+    res.json({ rooms, roomsGrouped, roomListSimple });
+  } catch (err) {
+    console.error('Error fetching rooms:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 router.post('/searchRoomBasic', async (req, res) => {
   const { capacity, resources } = req.body;
