@@ -163,6 +163,12 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
     }
   }
 
+  events.sort((a, b) => {
+    const startA = new Date(a.start.dateTime || a.start.date).getTime();
+    const startB = new Date(b.start.dateTime || b.start.date).getTime();
+    return startA - startB; // Ascending order (earliest first)
+  });
+  
   return events.map((event) => unpackExtendedProperties(event))
 }
 
