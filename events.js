@@ -168,7 +168,7 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
     const startB = new Date(b.start.dateTime || b.start.date).getTime();
     return startA - startB; // Ascending order (earliest first)
   });
-  
+
   return events.map((event) => unpackExtendedProperties(event))
 }
 
@@ -236,7 +236,27 @@ router.get('/approvedEvents', async (req, res) => {
       orderBy: 'startTime',
     });
 
-    res.status(200).json(response.data.items);
+    const events = response.data.items;
+
+    // Group events by start date (YYYY-MM-DD)
+    const groupedEvents = {};
+    events.forEach(event => {
+      const start = event.start.dateTime || event.start.date; // Support all-day events
+      const dateKey = new Date(start).toISOString().split('T')[0]; // YYYY-MM-DD
+
+      if (!groupedEvents[dateKey]) {
+        groupedEvents[dateKey] = [];
+      }
+      groupedEvents[dateKey].push(event);
+    });
+
+    // Convert object to array format for easier frontend handling
+    const formatted = Object.entries(groupedEvents).map(([date, events]) => ({
+      date,
+      events
+    }));
+
+    res.status(200).json(formatted);
   } catch (error) {
     console.error('Error fetching approved events:', error.message);
     res.status(500).send('Error fetching approved events: ' + error.message);
