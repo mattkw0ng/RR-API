@@ -14,7 +14,7 @@ const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 const { authorize } = require("./utils/authorize");
 const { unpackExtendedProperties } = require('./utils/general');
-const { extractEventDetailsForEmail, checkForConflicts } = require('./utils/event-utils');
+const { extractEventDetailsForEmail, checkForConflicts, getAvailability } = require('./utils/event-utils');
 const {
   sendReservationReceivedEmail,
   sendReservationApprovedEmail,
@@ -85,39 +85,9 @@ const checkAvailability = async (startDateTime, endDateTime, rRule) => {
   }
   // console.log('Times:', startDateTime, endDateTime, new Date(startDateTime).toISOString());
 
-  const auth = await authorize();
-  const startTime = new Date(startDateTime);
-  const endTime = new Date(endDateTime);
-
-  console.log('Times converted', startTime.toLocaleTimeString(), endTime.toLocaleTimeString());
-  
-  let instances = [{ start: startTime, end: endTime}];
-
-  if (rRule) {
-    console.log("Recurring event detected, expanding RRule");
-    const rule = RRule.fromString(rRule);
-    const occurrences = rule.between(startTime, new Date(startTime.getFullYear() + 1, 11, 31), true);
-
-    instances = occurrences.map(occurrence => ({
-      start: occurrence,
-      end: new Date(occurrence.getTime() + (endTime - startTime)),
-    }));
-  }
-
-  let conflicts = [];
-
-  for (let instance of instances) {
-    const approvedConflicts = await listEvents(APPROVED_CALENDAR_ID, auth, instance.start, instance.end);
-
-    const allConflicts = [...approvedConflicts];
-    const bookedRooms = new Set(allConflicts.flatMap(conflict => extractRooms(conflict.location)));
-
-    if (bookedRooms.size > 0) {
-      conflicts.push({ start: instance.start, end: instance.end, bookedRooms: Array.from(bookedRooms) });
-    }
-  }
-
-  return conflicts
+  const res = await getAvailability(startDateTime, endDateTime, rRule);
+  console.log(">> checkAvailability: ", res);
+  return res
 };
 
 async function getUserEvents(calendar, calendarId, userEmail, history) {
@@ -647,7 +617,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 // MAIN ROOM REQUEST FUNCTION
 router.post('/addEventWithRooms', async (req, res) => {
   console.log("Incoming event request");
-  const { eventName, location, description, congregation, groupName, groupLeader, numPeople, startDateTime, endDateTime, rooms, userEmail, rRule, isAdmin, otherEmail } = req.body;
+  const { eventName, location, description, congregation, groupName, groupLeader, numPeople, startDateTime, endDateTime, rooms, userEmail, rRule, isAdmin, otherEmail, conflictMessage } = req.body;
 
   if (!eventName || !startDateTime || !endDateTime || !rooms || rooms.length === 0) {
     return res.status(400).send('Missing required fields');
@@ -705,13 +675,14 @@ router.post('/addEventWithRooms', async (req, res) => {
       extendedProperties: {
         private: {
           ...(isAdmin
-            ? { groupName, groupLeader, congregation, numPeople } // Admin doesn't need room info here
+            ? { groupName, groupLeader, congregation, numPeople, conflictMessage } // Admin doesn't need room info here
             : {
               rooms: JSON.stringify(roomAttendees), // Non-admin stores room info here
               groupName,
               groupLeader,
               congregation,
               numPeople,
+              conflictMessage
             }),
         },
       }

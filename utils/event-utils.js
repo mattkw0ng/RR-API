@@ -172,6 +172,64 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
   }
 }
 
+/**
+ * Get all available rooms that are unoccupied during the given time range.
+ * @param {String} startDateTime - ISO dateTime string
+ * @param {String} endDateTime - ISO dateTime string
+ * @param {String} recurrenceRule - Optional rRule
+ * @returns {Array} List of available room records.
+ */
+async function getAvailability(startDateTime, endDateTime, recurrenceRule) {
+  if (!startDateTime || !endDateTime) {
+    throw new Error("Missing start or end datetime.");
+  }
+
+  let eventInstances = [{ start: startDateTime, end: endDateTime }];
+
+  if (recurrenceRule && recurrenceRule !== 'FREQ=' && recurrenceRule !== 'null') {
+    const expandedInstances = expandRecurringEvent(startDateTime, endDateTime, recurrenceRule);
+    eventInstances = [...eventInstances, ...expandedInstances];
+  }
+
+  try {
+    // Generate conditions for time conflict checks
+    const instanceConditions = eventInstances.map((_, index) => `
+      (
+        (start_time < $${index * 2 + 1} AND end_time > $${index * 2 + 2})
+        OR (start_time >= $${index * 2 + 1} AND start_time < $${index * 2 + 2})
+        OR (end_time > $${index * 2 + 1} AND end_time <= $${index * 2 + 2})
+        OR (start_time <= $${index * 2 + 1} AND end_time >= $${index * 2 + 2})
+      )
+    `).join(" OR ");
+
+    // Flatten dates for SQL values
+    const dateValues = eventInstances.flatMap(({ start, end }) => [start, end]);
+
+    const conflictQuery = `
+      SELECT DISTINCT UNNEST(rooms) AS busy_room
+      FROM events
+      WHERE ${instanceConditions}
+    `;
+
+    const conflictResult = await pool.query(conflictQuery, dateValues);
+    const busyRooms = conflictResult.rows.map(row => row.busy_room);
+
+    // Now fetch all rooms that are NOT in the busy list
+    const availableRoomsQuery = `
+      SELECT * FROM rooms
+      WHERE calendar_id != ALL($1)
+    `;
+
+    const { rows: availableRoomRows } = await pool.query(availableRoomsQuery, [busyRooms]);
+    const availableRoomNames = availableRoomRows.map(row => row.room_name);
+
+    return availableRoomNames;
+  } catch (error) {
+    console.error("Error finding available rooms:", error);
+    throw error;
+  }
+}
+
 
 
 
@@ -179,4 +237,5 @@ module.exports = {
   getNumPendingEvents,
   extractEventDetailsForEmail,
   checkForConflicts,
+  getAvailability,
 };
