@@ -134,7 +134,7 @@ router.post('/addRoom', async (req, res) => {
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
-    const values = [room_name, calendar_id, capacity || 0, resources, building_location];
+    const values = [room_name, calendar_id, capacity || 15, resources, building_location]; // capacity will default to 15 if it is left null
     const result = await pool.query(insertQuery, values);
     res.status(201).json({message: "Room added successfully", room: result.rows[0] });
   } catch (error) {
