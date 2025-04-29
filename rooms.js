@@ -112,6 +112,37 @@ router.post('/searchRoomBasic', async (req, res) => {
   }
 });
 
+router.post('/addRoom', async (req, res) => {
+  const { room_name, calendar_id, capacity, resources, building_location } = req.body;
+
+  // Basic Validation
+  if (!room_name || !calendar_id || !building_location) {
+    return res.status(400).json({error: "Missing required fields (room name, calendar id, or building location"});
+  }
+
+  if (!Array.isArray(resources)) {
+    return res.status(400).json({error: "The 'resources' field must be an array of strings"});
+  }
+
+  if (!calendar_id.endsWith('@resource.calendar.google.com')) {
+    return res.status(400).json({error: "Invalid calendar_id format"});
+  }
+
+  try {
+    const insertQuery =`
+      INSERT INTO rooms (room_name, calendar_id, capacity, resources, building_location)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `;
+    const values = [room_name, calendar_id, capacity || 0, resources, building_location];
+    const result = await pool.query(insertQuery, values);
+    res.status(201).json({message: "Room added successfully", room: result.rows[0] });
+  } catch (error) {
+    console.error("Error adding room", error);
+    res.status(500).json({ error: "Internal server error"});
+  }
+})
+
 module.exports = {
   router,
   SearchRoom,
