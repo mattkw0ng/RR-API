@@ -143,7 +143,9 @@ async function syncAllCalendarsOnStartup() {
   await pool.query("DELETE FROM events WHERE end_time < NOW()"); // Deletes past events
 
   const calendarIds = [PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID];
-
+  console.log(calendarIds);
+  console.log("🔄 Syncing all calendars...");
+  
   for (const calendarId of calendarIds) {
     await stopExistingWatches(calendarId);
     await fullCalendarSync(calendarId);
