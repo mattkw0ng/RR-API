@@ -143,9 +143,7 @@ async function syncAllCalendarsOnStartup() {
   await pool.query("DELETE FROM events WHERE end_time < NOW()"); // Deletes past events
 
   const calendarIds = [PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID];
-  console.log(calendarIds);
-  console.log("🔄 Syncing all calendars...");
-  
+
   for (const calendarId of calendarIds) {
     await stopExistingWatches(calendarId);
     await fullCalendarSync(calendarId);
@@ -184,7 +182,7 @@ async function syncCalendarChanges(syncToken, calendarId) {
   } catch (error) {
     if (error.code === 410) {
       console.log("Sync token expired, full sync required...");
-      await fullCalendarSync();
+      await fullCalendarSync(calendarId);
     } else {
       console.error("Error syncing calendar: ", error);
     }
