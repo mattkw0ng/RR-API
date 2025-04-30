@@ -130,8 +130,8 @@ function groupEventsByRoom(events) {
  * @returns {Array} List of conflicting events.
  */
 async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenceRule) {
-  if (!startDateTime || !endDateTime || !roomList.length) {
-    throw new Error("Event must include start time, end time, and rooms.");
+  if (!startDateTime || !endDateTime) {
+    throw new Error("Event must include start time and end time.");
   }
 
   let eventInstances = [{ start: startDateTime, end: endDateTime }]; // Default for non-recurring events
@@ -139,10 +139,10 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
   // Expand recurring events into separate instances
   if (recurrenceRule && recurrenceRule !== 'FREQ=' && recurrenceRule !== 'null') {
     const expandedInstances = expandRecurringEvent(startDateTime, endDateTime, recurrenceRule);
-    eventInstances = [ ...eventInstances, ...expandedInstances];
+    eventInstances = [...eventInstances, ...expandedInstances];
   }
 
-  console.log('>> expanded events: ', eventInstances);
+  console.log('>> Expanded event instances:', eventInstances);
 
   try {
     // Generate query conditions for each instance
@@ -155,17 +155,28 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
       )
     `).join(" OR ");
 
-    const query = `
-      SELECT * FROM events
-      WHERE rooms && $1
-      AND (${instanceConditions})
-    `;
+    // Adjust query based on whether roomList is provided
+    const query = roomList && roomList.length > 0
+      ? `
+        SELECT * FROM events
+        WHERE rooms && $1 -- Check if any room overlaps
+        AND (${instanceConditions}) -- Check for time conflicts
+      `
+      : `
+        SELECT * FROM events
+        WHERE (${instanceConditions}) -- Check for time conflicts
+      `;
 
     // Flatten event instances into query values
-    const values = [roomList, ...eventInstances.flatMap(({ start, end }) => [start, end])];
+    const values = roomList && roomList.length > 0
+      ? [roomList, ...eventInstances.flatMap(({ start, end }) => [start, end])]
+      : eventInstances.flatMap(({ start, end }) => [start, end]);
 
+    // Execute the query
     const { rows } = await pool.query(query, values);
-    return groupEventsByRoom(rows); // Return list of conflicting events
+
+    // Group conflicts by room
+    return groupEventsByRoom(rows);
   } catch (error) {
     console.error("Error checking conflicts:", error);
     throw error;
