@@ -94,12 +94,13 @@ async function getCalendarIdByResourceId(resourceId, channelId) {
 async function fullCalendarSync(calendarId) {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
-
+  
   try {
     console.log(`Performing full sync for calendar: ${calendarId}`);
 
     let allEvents = [];
     let nextPageToken = null;
+    let nextSyncToken = null;
     const now = new Date();
     const sixMonthsLater = new Date();
     sixMonthsLater.setMonth(now.getMonth() + 6);
@@ -117,6 +118,10 @@ async function fullCalendarSync(calendarId) {
 
       allEvents.push(...response.data.items);
       nextPageToken = response.data.nextPageToken;
+      nextSyncToken = response.data.nextSyncToken;
+      console.log(`Fetched ${response.data.items.length} events from calendar ${calendarId}`);
+      console.log(`Next page token: ${nextPageToken}`);
+      console.log(`Next sync token: ${nextSyncToken}`);
     } while (nextPageToken);
 
     console.log(`Full sync fetched ${allEvents.length} events for calendar ${calendarId}`);
@@ -125,8 +130,8 @@ async function fullCalendarSync(calendarId) {
     await storeEvents(allEvents, calendarId);
 
     // Store the new sync token for future incremental updates
-    if (allEvents.length > 0 && allEvents[0].nextSyncToken) {
-      await storeSyncToken(allEvents[0].nextSyncToken, calendarId);
+    if (nextSyncToken) {
+      await storeSyncToken(nextSyncToken, calendarId);
       console.log("New sync token stored successfully");
     } else {
       console.warn("No sync token available after full sync");
