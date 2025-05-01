@@ -948,14 +948,14 @@ router.post('/filterRooms', async (req, res) => {
   try {
     const availableRooms = await checkAvailability(startDateTime, endDateTime);
     const matchingRooms = await roomsTools.SearchRoom(capacity, resources);
-    console.log("CheckAvailability:", availableRooms[0].bookedRooms);
+    console.log("CheckAvailability:", availableRooms);
 
     const matchingRoomsNames = matchingRooms.map((elem) => {
       return elem.room_name;
     })
     console.log("roomsTools.SearchRoom => Names:", matchingRoomsNames);
     const merged = matchingRoomsNames.filter((room) => {
-      return !availableRooms[0].bookedRooms?.includes(room);
+      return !availableRooms?.includes(room);
     })
     console.log("Res:", merged);
     res.json(merged);
