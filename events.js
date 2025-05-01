@@ -94,14 +94,8 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
     queryOptions.timeMin = now.toISOString()
   }
 
-  const response = await calendar.events.list({
-    calendarId: calendarId, // or your specific calendar ID
-    timeMin: now.toISOString(),
-    singleEvents: false,
-    q: userEmail, // Search by user email in attendees
-  });
-
-  // console.log('++ /userEvents response', response)
+  const response = await calendar.events.list(queryOptions);
+  console.log(">> (getUserEvents) response", response.data.items);
   // Filter the events by matching the user's email in the attendees
   const events = response.data.items.filter(event =>
     event.attendees && event.attendees.some(attendee => attendee.email === userEmail && event.extendedProperties.private.adminApproval !== "true")
