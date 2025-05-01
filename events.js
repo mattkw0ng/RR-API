@@ -935,7 +935,7 @@ router.get('/checkAvailability', async (req, res) => {
     const allRooms = (await roomsTools.GetAllRooms()).map((room) => room.room_name);
     console.log("Busy Rooms:", busyRooms);
     console.log("All Rooms:", allRooms);
-    const availableRooms = allRooms.filter((room) => !busyRooms.includes(room.room_name));
+    const availableRooms = allRooms.filter((room) => !busyRooms.includes(room));
     console.log("Available Rooms:", availableRooms);
     
     res.json(availableRooms);
