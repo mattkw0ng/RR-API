@@ -85,7 +85,7 @@ const checkAvailability = async (startDateTime, endDateTime, rRule) => {
   }
   // console.log('Times:', startDateTime, endDateTime, new Date(startDateTime).toISOString());
 
-  const res = await getAvailability(startDateTime, endDateTime, rRule);
+  const res = await checkForConflicts([], startDateTime, endDateTime, rRule);
   console.log(">> checkAvailability: ", res);
   return res
 };
