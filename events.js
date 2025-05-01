@@ -77,20 +77,6 @@ function extractRooms(input) {
   return cleanedBookedRooms;
 };
 
-// Check Availability of rooms given a certain time frame
-// Returns list of available rooms
-const checkAvailability = async (startDateTime, endDateTime, rRule) => {
-  if (!startDateTime || !endDateTime) {
-    throw new Error('Missing startDateTime or endDateTime');
-  }
-  // console.log('Times:', startDateTime, endDateTime, new Date(startDateTime).toISOString());
-
-  const conflicts = await checkForConflicts([], startDateTime, endDateTime, rRule);
-  const roomNames = await getRoomNamesFromCalendarIds(conflicts);
-  console.log(">> checkAvailability: ", roomNames);
-  return roomNames;
-};
-
 async function getUserEvents(calendar, calendarId, userEmail, history) {
   const now = new Date();
 
@@ -926,6 +912,19 @@ router.post('/editEvent', async (req, res) => {
   }
 });
 
+// Check Availability of rooms given a certain time frame
+// Returns list of available rooms
+const checkAvailability = async (startDateTime, endDateTime, rRule) => {
+  if (!startDateTime || !endDateTime) {
+    throw new Error('Missing startDateTime or endDateTime');
+  }
+  // console.log('Times:', startDateTime, endDateTime, new Date(startDateTime).toISOString());
+
+  const conflicts = await checkForConflicts([], startDateTime, endDateTime, rRule);
+  const roomNames = await getRoomNamesFromCalendarIds(conflicts);
+  console.log(">> checkAvailability: ", roomNames);
+  return roomNames;
+};
 
 // Check what rooms are available at any given time/date
 router.get('/checkAvailability', async (req, res) => {
@@ -955,7 +954,7 @@ router.post('/filterRooms', async (req, res) => {
     })
     console.log("roomsTools.SearchRoom => Names:", matchingRoomsNames);
     const merged = matchingRoomsNames.filter((room) => {
-      return !availableRooms?.includes(room);
+      return availableRooms?.includes(room);
     })
     console.log("Res:", merged);
     res.json(merged);

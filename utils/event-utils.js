@@ -134,7 +134,7 @@ async function getRoomNamesFromCalendarIds(busyRooms) {
     const query = `
       SELECT room_name, calendar_id
       FROM rooms
-      WHERE calendar_id != ANY($1)
+      WHERE calendar_id = ANY($1)
     `;
 
     const { rows } = await pool.query(query, [calendarIds]);
@@ -144,7 +144,7 @@ async function getRoomNamesFromCalendarIds(busyRooms) {
 
     // Map the original order
     const roomNames = busyRooms.map(roomObj => idToNameMap[roomObj.room]).filter(Boolean);
-
+    console.log("(getRoomNamesFromCalendarIds) Room names:", roomNames);
     return roomNames;
   } catch (error) {
     console.error("Error fetching room names:", error);
