@@ -931,7 +931,11 @@ router.get('/checkAvailability', async (req, res) => {
   const { startDateTime, endDateTime } = req.query;
 
   try {
-    const availableRooms = await checkAvailability(startDateTime, endDateTime);
+    const busyRooms = await checkAvailability(startDateTime, endDateTime);
+    const allRooms = await roomsTools.GetAllRooms();
+    const availableRooms = allRooms.filter((room) => !busyRooms.includes(room.room_name));
+    console.log("Available Rooms:", availableRooms);
+    
     res.json(availableRooms);
   } catch (error) {
     console.error('Error checking availability:', error.message);
@@ -945,16 +949,16 @@ router.post('/filterRooms', async (req, res) => {
   const { startDateTime, endDateTime, capacity, resources } = req.body;
 
   try {
-    const availableRooms = await checkAvailability(startDateTime, endDateTime);
+    const busyRooms = await checkAvailability(startDateTime, endDateTime);
     const matchingRooms = await roomsTools.SearchRoom(capacity, resources);
-    console.log("CheckAvailability:", availableRooms);
+    console.log("CheckAvailability:", busyRooms);
 
     const matchingRoomsNames = matchingRooms.map((elem) => {
       return elem.room_name;
     })
     console.log("roomsTools.SearchRoom => Names:", matchingRoomsNames);
     const merged = matchingRoomsNames.filter((room) => {
-      return availableRooms?.includes(room);
+      return !busyRooms?.includes(room);
     })
     console.log("Res:", merged);
     res.json(merged);

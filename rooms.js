@@ -42,6 +42,13 @@ async function GetRoomById(roomId) {
   return(result.rows[0])
 }
 
+async function GetAllRooms() {
+  const result = await pool.query(
+    `SELECT * FROM rooms`
+  );
+  return(result.rows);
+}
+
 // TEST : get room data from database
 router.get('/rooms-simple', async (req, res) => {
   try {
@@ -148,4 +155,5 @@ module.exports = {
   SearchRoom,
   GetRoomByName,
   GetRoomById,
+  GetAllRooms,
 };
