@@ -85,11 +85,10 @@ const checkAvailability = async (startDateTime, endDateTime, rRule) => {
   }
   // console.log('Times:', startDateTime, endDateTime, new Date(startDateTime).toISOString());
 
-  const res = checkForConflicts([], startDateTime, endDateTime, rRule).then((conflicts) => {
-    return getRoomNamesFromCalendarIds(conflicts);
-  });
-  console.log(">> checkAvailability: ", res);
-  return res
+  const conflicts = await checkForConflicts([], startDateTime, endDateTime, rRule);
+  const roomNames = await getRoomNamesFromCalendarIds(conflicts);
+  console.log(">> checkAvailability: ", roomNames);
+  return roomNames;
 };
 
 async function getUserEvents(calendar, calendarId, userEmail, history) {
