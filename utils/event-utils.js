@@ -145,6 +145,12 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
   console.log('>> Expanded event instances:', eventInstances);
 
   try {
+    // If roomList is empty, fetch all possible rooms from the database
+    if (!roomList || roomList.length === 0) {
+      const { rows: allRooms } = await pool.query(`SELECT calendar_id FROM rooms`);
+      roomList = allRooms.map(row => row.calendar_id);
+    }
+
     // Generate query conditions for each instance
     const instanceConditions = eventInstances.map((_, index) => `
       (
@@ -155,22 +161,15 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
       )
     `).join(" OR ");
 
-    // Adjust query based on whether roomList is provided
-    const query = roomList && roomList.length > 0
-      ? `
-        SELECT * FROM events
-        WHERE rooms && $1 -- Check if any room overlaps
-        AND (${instanceConditions}) -- Check for time conflicts
-      `
-      : `
-        SELECT * FROM events
-        WHERE (${instanceConditions}) -- Check for time conflicts
-      `;
+    // SQL query to find conflicting events
+    const query = `
+      SELECT * FROM events
+      WHERE rooms && $1 -- Check if any room overlaps
+      AND (${instanceConditions}) -- Check for time conflicts
+    `;
 
-    // Flatten event instances into query values
-    const values = roomList && roomList.length > 0
-      ? [roomList, ...eventInstances.flatMap(({ start, end }) => [start, end])]
-      : eventInstances.flatMap(({ start, end }) => [start, end]);
+    // Flatten event instances into query parameters
+    const values = [roomList, ...eventInstances.flatMap(({ start, end }) => [start, end])];
 
     // Execute the query
     const { rows } = await pool.query(query, values);
@@ -179,7 +178,7 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
     return groupEventsByRoom(rows);
   } catch (error) {
     console.error("Error checking conflicts:", error);
-    throw error;
+    throw new Error("Failed to check for conflicts in the database.");
   }
 }
 
