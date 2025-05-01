@@ -120,6 +120,38 @@ function groupEventsByRoom(events) {
   return Array.from(roomMap.values());
 }
 
+/**
+ * Given a list of room objects with calendar IDs, returns an array of corresponding room names.
+ * @param {Array} busyRooms - Array of objects like [{ room: calendarId, times: [...] }, ...]
+ * @returns {Promise<Array>} List of room names
+ */
+async function getRoomNamesFromCalendarIds(busyRooms) {
+  const calendarIds = busyRooms.map(r => r.room);
+
+  if (!calendarIds.length) return [];
+
+  try {
+    const query = `
+      SELECT room_name, calendar_id
+      FROM rooms
+      WHERE calendar_id = ANY($1)
+    `;
+
+    const { rows } = await pool.query(query, [calendarIds]);
+
+    // Create a lookup map from calendar_id to room_name
+    const idToNameMap = Object.fromEntries(rows.map(({ room_name, calendar_id }) => [calendar_id, room_name]));
+
+    // Map the original order
+    const roomNames = busyRooms.map(roomObj => idToNameMap[roomObj.room]).filter(Boolean);
+
+    return roomNames;
+  } catch (error) {
+    console.error("Error fetching room names:", error);
+    throw error;
+  }
+}
+
 
 /**
  * Check for conflicts between an incoming event and stored events in the database.
@@ -248,4 +280,5 @@ module.exports = {
   extractEventDetailsForEmail,
   checkForConflicts,
   getAvailability,
+  getRoomNamesFromCalendarIds,
 };

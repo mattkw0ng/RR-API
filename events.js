@@ -14,7 +14,7 @@ const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 const { authorize } = require("./utils/authorize");
 const { unpackExtendedProperties } = require('./utils/general');
-const { extractEventDetailsForEmail, checkForConflicts, getAvailability } = require('./utils/event-utils');
+const { extractEventDetailsForEmail, checkForConflicts, getAvailability, getRoomNamesFromCalendarIds } = require('./utils/event-utils');
 const {
   sendReservationReceivedEmail,
   sendReservationApprovedEmail,
@@ -85,7 +85,9 @@ const checkAvailability = async (startDateTime, endDateTime, rRule) => {
   }
   // console.log('Times:', startDateTime, endDateTime, new Date(startDateTime).toISOString());
 
-  const res = await checkForConflicts([], startDateTime, endDateTime, rRule);
+  const res = checkForConflicts([], startDateTime, endDateTime, rRule).then((conflicts) => {
+    return getRoomNamesFromCalendarIds(conflicts);
+  });
   console.log(">> checkAvailability: ", res);
   return res
 };
