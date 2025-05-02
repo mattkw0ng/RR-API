@@ -646,10 +646,7 @@ router.post('/addEventWithRooms', async (req, res) => {
       attendees: eventAttendees,
       reminders: {
         useDefault: false,
-        overrides: [
-          { method: 'email', minutes: 24 * 60 },
-          { method: 'popup', minutes: 10 },
-        ],
+        overrides: [],
       },
       extendedProperties: {
         private: {
@@ -995,10 +992,7 @@ router.post('/addUserEvent', async (req, res) => {
       },
       reminders: {
         useDefault: false,
-        overrides: [
-          { method: 'email', minutes: 24 * 60 },
-          { method: 'popup', minutes: 10 },
-        ],
+        overrides: [],
       },
     };
 
