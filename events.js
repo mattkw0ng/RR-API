@@ -95,7 +95,6 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
   }
 
   const response = await calendar.events.list(queryOptions);
-  console.log(">> (getUserEvents) response", response.data.items);
   // Filter the events by matching the user's email in the attendees
   const events = response.data.items.filter(event =>
     event.attendees && event.attendees.some(attendee => attendee.email === userEmail && event.extendedProperties.private.adminApproval !== "true")
@@ -139,6 +138,12 @@ router.get('/userEvents', async (req, res) => {
     const proposedEvents = await getUserEvents(calendar, PROPOSED_CHANGES_CALENDAR_ID, userEmail, false);
     const pastEvents = await getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail, true);
 
+    console.log(">> (getUserEvents) pendingEvents", pendingEvents);
+    console.log(">> (getUserEvents) approvedEvents", approvedEvents);
+    console.log(">> (getUserEvents) proposedEvents", proposedEvents);
+    console.log(">> (getUserEvents) pastEvents", pastEvents);
+
+    // Combine all events into a single object
     const result = { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed': proposedEvents, 'history': pastEvents };
     console.log(">> (getUserEvents) result", result);
 
