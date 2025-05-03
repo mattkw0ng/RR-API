@@ -4,6 +4,7 @@ function unpackExtendedProperties(event) {
   }
 
   const privateProps = { ...event.extendedProperties.private };
+  console.log("Unpacking extended properties:", privateProps);
 
   // Conditionally parse the 'rooms' key
   if (privateProps.rooms && typeof privateProps.rooms === "string") {
