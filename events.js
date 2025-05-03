@@ -1053,8 +1053,8 @@ router.get('/eventsByAttendee', async (req, res) => {
   });
 });
 
-// Reject a pending Event (delete?)
-router.delete('rejectEvent', async (req, res) => {
+// Reject a pending Event (delete?) might need to change this in the future to move to rejected calendar
+router.delete('/rejectEvent', async (req, res) => {
   try {
     const { eventId } = req.body;
     const auth = await authorize();
