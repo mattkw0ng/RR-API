@@ -94,32 +94,37 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
     queryOptions.timeMin = now.toISOString()
   }
 
-  const response = await calendar.events.list(queryOptions);
-  // Filter the events by matching the user's email in the attendees
-  const events = response.data.items.filter(event =>
-    event.attendees && event.attendees.some(attendee => attendee.email === userEmail && event.extendedProperties.private?.adminApproval !== "true")
-  );
+  try {
+    const response = await calendar.events.list(queryOptions);
+    // Filter the events by matching the user's email in the attendees
+    const events = response.data.items.filter(event =>
+      event.attendees && event.attendees.some(attendee => attendee.email === userEmail && event.extendedProperties?.private?.adminApproval !== "true")
+    );
 
-  for (currEvent of events) {
-    if (currEvent.recurrence) {
-      // For recurring events, find all instances and check conflicts for each instance
-      const instancesResponse = await calendar.events.instances({
-        calendarId: PENDING_APPROVAL_CALENDAR_ID,
-        eventId: currEvent.id,
-      })
-      const instances = instancesResponse.data.items;
+    for (currEvent of events) {
+      if (currEvent.recurrence) {
+        // For recurring events, find all instances and check conflicts for each instance
+        const instancesResponse = await calendar.events.instances({
+          calendarId: PENDING_APPROVAL_CALENDAR_ID,
+          eventId: currEvent.id,
+        });
+        const instances = instancesResponse.data.items;
 
-      currEvent.instances = instances.map((e) => unpackExtendedProperties(e));
+        currEvent.instances = instances.map((e) => unpackExtendedProperties(e));
+      }
     }
+
+    events.sort((a, b) => {
+      const startA = new Date(a.start.dateTime || a.start.date).getTime();
+      const startB = new Date(b.start.dateTime || b.start.date).getTime();
+      return startA - startB; // Ascending order (earliest first)
+    });
+
+    return events.map((event) => unpackExtendedProperties(event));
+  } catch (error) {
+    console.error('Error processing user events:', error.message);
+    throw error; // Re-throw the error to propagate it further if needed
   }
-
-  events.sort((a, b) => {
-    const startA = new Date(a.start.dateTime || a.start.date).getTime();
-    const startB = new Date(b.start.dateTime || b.start.date).getTime();
-    return startA - startB; // Ascending order (earliest first)
-  });
-
-  return events.map((event) => unpackExtendedProperties(event))
 }
 
 // Usage example in your route
