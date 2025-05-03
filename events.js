@@ -97,7 +97,7 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
   const response = await calendar.events.list(queryOptions);
   // Filter the events by matching the user's email in the attendees
   const events = response.data.items.filter(event =>
-    event.attendees && event.attendees.some(attendee => attendee.email === userEmail && event.extendedProperties.private.adminApproval !== "true")
+    event.attendees && event.attendees.some(attendee => attendee.email === userEmail && event.extendedProperties.private?.adminApproval !== "true")
   );
 
   for (currEvent of events) {
