@@ -118,23 +118,23 @@ async function fullCalendarSync(calendarId) {
 
       allEvents.push(...response.data.items);
       nextPageToken = response.data.nextPageToken;
-      nextSyncToken = response.data.nextSyncToken;
+      nextSyncToken = response.data.nextSyncToken; // Store the latest sync token for future incremental updates (Not working )
       console.log(`Fetched ${response.data.items.length} events from calendar ${calendarId}`);
-      console.log(`Next page token: ${nextPageToken}`);
-      console.log(`Next sync token: ${nextSyncToken}`);
     } while (nextPageToken);
 
     console.log(`Full sync fetched ${allEvents.length} events for calendar ${calendarId}`);
 
     // Store fetched events in the database
-    await storeEvents(allEvents, calendarId);
+    const confirmedEvents = eventList.filter(event => event.status === 'confirmed');
+    console.log(`Storing ${confirmedEvents.length} confirmed events for calendar ${calendarId}`);
+    await storeEvents(confirmedEvents, calendarId);
 
     // Store the new sync token for future incremental updates
     if (nextSyncToken) {
       await storeSyncToken(nextSyncToken, calendarId);
       console.log("New sync token stored successfully");
     } else {
-      console.warn("No sync token available after full sync");
+      console.warn("No sync token available after full sync (ignore if this is expected)");
     }
 
   } catch (error) {
