@@ -222,6 +222,31 @@ router.get('/approvedEvents', async (req, res) => {
   }
 });
 
+// Fetch event details based on eventId
+router.get('/eventDetails', async (req, res) => {
+  const { eventId } = req.query;
+
+  if (!eventId) {
+    return res.status(400).json({ error: 'Event ID is required' });
+  }
+
+  try {
+    const auth = await authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    const response = await calendar.events.get({
+      calendarId: PENDING_APPROVAL_CALENDAR_ID,
+      eventId,
+    });
+
+    const eventDetails = unpackExtendedProperties(response.data);
+    res.status(200).json(eventDetails);
+  } catch (error) {
+    console.error('Error fetching event details:', error.message);
+    res.status(500).send('Error fetching event details: ' + error.message);
+  }
+});
+
 // Fetch Proposed Changes events
 router.get('/proposedChangesEvents', async (req, res) => {
   try {
@@ -936,7 +961,7 @@ router.get('/checkAvailability', async (req, res) => {
     console.log("All Rooms:", allRooms);
     const availableRooms = allRooms.filter((room) => !busyRooms.includes(room));
     console.log("Available Rooms:", availableRooms);
-    
+
     res.json(availableRooms);
   } catch (error) {
     console.error('Error checking availability:', error.message);
