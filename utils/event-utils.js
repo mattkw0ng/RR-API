@@ -109,6 +109,7 @@ function groupEventsByRoom(events) {
   const roomMap = new Map();
 
   events.forEach(event => {
+    console.log("Conflict Event found", event);
     event.rooms.forEach(room => {
       if (!roomMap.has(room)) {
         roomMap.set(room, { room, times: [] });
