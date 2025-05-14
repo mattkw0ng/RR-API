@@ -113,6 +113,7 @@ async function fullCalendarSync(calendarId) {
         orderBy: "startTime",
         timeMin: now.toISOString(),
         timeMax: sixMonthsLater.toISOString(),
+        showDeleted: false,
         pageToken: nextPageToken,
       });
 
@@ -145,7 +146,7 @@ async function fullCalendarSync(calendarId) {
 async function syncAllCalendarsOnStartup() {
   console.log("Starting full calendar sync on server startup...");
   console.log("🗑️ Removing old events...");
-  await pool.query("DELETE FROM events WHERE end_time < NOW()"); // Deletes past events
+  await pool.query("TRUNCATE TABLE events"); // Deletes past events
 
   const calendarIds = [PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID];
 
