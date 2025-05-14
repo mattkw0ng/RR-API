@@ -125,7 +125,7 @@ async function fullCalendarSync(calendarId) {
     console.log(`Full sync fetched ${allEvents.length} events for calendar ${calendarId}`);
 
     // Store fetched events in the database
-    const confirmedEvents = eventList.filter(event => event.status === 'confirmed');
+    const confirmedEvents = allEvents.filter(event => event.status === 'confirmed');
     console.log(`Storing ${confirmedEvents.length} confirmed events for calendar ${calendarId}`);
     await storeEvents(confirmedEvents, calendarId);
 
