@@ -235,7 +235,7 @@ router.get('/eventDetails', async (req, res) => {
     const calendar = google.calendar({ version: 'v3', auth });
 
     const response = await calendar.events.get({
-      calendarId: PENDING_APPROVAL_CALENDAR_ID,
+      calendarId: APPROVED_CALENDAR_ID,
       eventId,
     });
 
