@@ -9,7 +9,7 @@ const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 
 async function GetCalendarIdByRoom(room) {
   console.log("Getting calendar ID for room:", room);
-  const query = 'SELECT calendar_id FROM rooms WHERE name = $1';
+  const query = 'SELECT calendar_id FROM rooms WHERE room_name = $1';
   const result = await pool.query(query, [room]);
   if (result.rows.length > 0) {
     return result.rows[0].calendar_id;
