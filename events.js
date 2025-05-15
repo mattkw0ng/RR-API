@@ -23,18 +23,6 @@ const {
   notifyAdminsOfNewRequest,
 } = require('./utils/sendEmailSG');
 
-
-
-async function getCalendarIdByRoom(room) {
-  console.log("Getting calendar ID for room:", room);
-  const query = 'SELECT calendar_id FROM rooms WHERE name = $1';
-  const result = await pool.query(query, [room]);
-  if (result.rows.length > 0) {
-    return result.rows[0].calendar_id;
-  }
-  throw new Error(`Room not found: ${room}`);
-}
-
 // Get list of events
 async function listEvents(calendarId, auth, startTime, endTime) {
   const calendar = google.calendar({ version: 'v3', auth });
@@ -647,7 +635,7 @@ router.post('/addEventWithRooms', async (req, res) => {
     // Get the calendar IDs for the rooms (assuming you have a function to fetch them)
     const roomAttendees = await Promise.all(
       rooms.map(async (room) => {
-        const roomId = await getCalendarIdByRoom(room);
+        const roomId = await roomsTools.GetCalendarIdByRoom(room);
         return { email: roomId, resource: true };
       })
     );

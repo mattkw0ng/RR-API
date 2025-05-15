@@ -7,15 +7,14 @@ const fs = require('fs');
 const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 
-// Get calendar ID from database (currently unimplemented)
-async function getCalendarIdByRoom(room) {
-  // const query = 'SELECT calendar_id FROM rooms WHERE name = $1';
-  // const result = await pool.query(query, [room]);
-  // if (result.rows.length > 0) {
-  //   return result.rows[0].calendar_id;
-  // }
-  // throw new Error(`Room not found: ${room}`);
-  return ROOM_IDS[room]
+async function GetCalendarIdByRoom(room) {
+  console.log("Getting calendar ID for room:", room);
+  const query = 'SELECT calendar_id FROM rooms WHERE name = $1';
+  const result = await pool.query(query, [room]);
+  if (result.rows.length > 0) {
+    return result.rows[0].calendar_id;
+  }
+  throw new Error(`Room not found: ${room}`);
 }
 
 async function SearchRoom(capacity, resources) {
@@ -156,4 +155,5 @@ module.exports = {
   GetRoomByName,
   GetRoomById,
   GetAllRooms,
+  GetCalendarIdByRoom,
 };
