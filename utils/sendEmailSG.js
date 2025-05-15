@@ -58,28 +58,6 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
         <li><strong>Room(s):</strong> ${roomNames.join(', ')}</li>
       </ul>
       <p>You will be notified upon further updates regarding your reservation.</p>
-      
-      <hr />
-      <h3>Reminders for New Room Reservations & Usage</h3>
-      <p>As the requester of the room reservation, you are responsible for the following:</p>
-      <ol>
-        <li>Access to the church campus / room. If you are not a church key-holder, make sure someone can unlock the doors for you (e.g. congregation M.A's or pastor or office staff).</li>
-        <li>Return tables, chairs and equipment to their original locations (especially when moved from other rooms).</li>
-        <li>Keep the room clean and tidy. Take out food waste and trash after your meeting.</li>
-        <li>Turn off lights, TV, AC/Heater and AV equipment before leaving the room.</li>
-        <li>Make sure all windows and doors are closed and locked after your meeting.</li>
-        <li>Inform <a href="mailto:rooms@sjcac.org">rooms@sjcac.org</a> if your meeting is cancelled to create availability for other groups.</li>
-        <li>If you are the last person/group on campus, make sure you arm the alarm system. If not, please coordinate to make sure someone else can and lock up the church.</li>
-        <li>
-          Due to the increase of intruders/trespassers wandering onto the church campus, do not leave building entrance doors propped open or unattended.
-          If you see or encounter someone suspicious, please be safe and alert <a href="mailto:celine.bower@sjcac.org">celine.bower@sjcac.org</a> or file an incident report here: 
-          <a href="https://sjcac.churchcenter.com/people/forms/932890">Incident Report Form</a>
-        </li>
-        <li>
-          Report any damage or broken items/equipment to the church office:
-          <a href="https://sjcac.churchcenter.com/people/forms/947288">Maintenance Report Form</a>
-        </li>
-      </ol>
 
       <p>Thank you,</p>
       <p><strong>SJCAC Room Reservation Team</strong></p>

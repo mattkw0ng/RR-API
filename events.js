@@ -26,13 +26,13 @@ const {
 
 
 async function getCalendarIdByRoom(room) {
-  // const query = 'SELECT calendar_id FROM rooms WHERE name = $1';
-  // const result = await pool.query(query, [room]);
-  // if (result.rows.length > 0) {
-  //   return result.rows[0].calendar_id;
-  // }
-  // throw new Error(`Room not found: ${room}`);
-  return ROOM_IDS[room]
+  console.log("Getting calendar ID for room:", room);
+  const query = 'SELECT calendar_id FROM rooms WHERE name = $1';
+  const result = await pool.query(query, [room]);
+  if (result.rows.length > 0) {
+    return result.rows[0].calendar_id;
+  }
+  throw new Error(`Room not found: ${room}`);
 }
 
 // Get list of events
@@ -653,6 +653,14 @@ router.post('/addEventWithRooms', async (req, res) => {
     );
     console.log(roomAttendees)
 
+    // add group leader, group name, congregation to the description
+    const location = location || 'San Jose Christian Alliance Church';
+    const fullDescription = `${description}
+    - Group Name: ${groupName}
+    - Group Leader: ${groupLeader}
+    - Congregation: ${congregation}
+    - Number of People: ${numPeople}`;
+
     // If this is an admin request, check if they have entered an alternate email, and if so use this
     // If this is a user request, add the user's email to the attendee's list
     const eventAttendees = isAdmin ?
@@ -669,7 +677,7 @@ router.post('/addEventWithRooms', async (req, res) => {
     const event = {
       summary,
       location,
-      description,
+      description: fullDescription,
       start: {
         dateTime: startDateTime,
         timeZone: 'America/Los_Angeles',
