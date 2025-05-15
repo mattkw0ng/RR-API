@@ -57,7 +57,7 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
         <li><strong>Time:</strong> ${eventTime}</li>
         <li><strong>Room(s):</strong> ${roomNames.join(', ')}</li>
       </ul>
-      <p>You will be notified upon further updates regarding your reservation.</p>
+      <p>You will be notified via email when your reservation is approved. You can check real time status by logging into your account and clicking on 'profie' to view pending, approved and a history of your requests.</p>
 
       <p>Thank you,</p>
       <p><strong>SJCAC Room Reservation Team</strong></p>
@@ -93,12 +93,12 @@ const sendReservationApprovedEmail = async (userEmail, userName, eventName, even
       <h3>Reminders for New Room Reservations & Usage</h3>
       <p>As the requester of the room reservation, you are responsible for the following:</p>
       <ol>
-        <li>Access to the church campus / room. If you are not a church key-holder, make sure someone can unlock the doors for you (e.g. congregation M.A's or pastor or office staff).</li>
+        <li>Access to the church campus / room: If you are not a church key-holder, make sure someone can unlock the doors for you (e.g. congregation M.A's or pastor or office staff).</li>
         <li>Return tables, chairs and equipment to their original locations (especially when moved from other rooms).</li>
         <li>Keep the room clean and tidy. Take out food waste and trash after your meeting.</li>
         <li>Turn off lights, TV, AC/Heater and AV equipment before leaving the room.</li>
         <li>Make sure all windows and doors are closed and locked after your meeting.</li>
-        <li>Inform <a href="mailto:rooms@sjcac.org">rooms@sjcac.org</a> if your meeting is cancelled to create availability for other groups.</li>
+        <li>You may 'Cancel Event' from your <a href="https://rooms.sjcac.org/profile">user profile</a> to create availability for other groups.</li>
         <li>If you are the last person/group on campus, make sure you arm the alarm system. If not, please coordinate to make sure someone else can and lock up the church.</li>
         <li>
           Due to the increase of intruders/trespassers wandering onto the church campus, do not leave building entrance doors propped open or unattended.
