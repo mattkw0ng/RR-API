@@ -642,7 +642,6 @@ router.post('/addEventWithRooms', async (req, res) => {
     console.log(roomAttendees)
 
     // add group leader, group name, congregation to the description
-    const location = location || 'San Jose Christian Alliance Church';
     const fullDescription = `${description}
     - Group Name: ${groupName}
     - Group Leader: ${groupLeader}
