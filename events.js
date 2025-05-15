@@ -645,7 +645,6 @@ router.post('/addEventWithRooms', async (req, res) => {
     const fullDescription = `${description}
     - Group Name: ${groupName}
     - Group Leader: ${groupLeader}
-    - Email: ${isAdmin ? otherEmail : userEmail}
     - Congregation: ${congregation}
     - Number of People: ${numPeople}`;
 
@@ -674,6 +673,7 @@ router.post('/addEventWithRooms', async (req, res) => {
         dateTime: endDateTime,
         timeZone: 'America/Los_Angeles',
       },
+      attendees: eventAttendees,
       reminders: {
         useDefault: false,
         overrides: [],
