@@ -58,7 +58,7 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
         <li><strong>Room(s):</strong> ${roomNames.join(', ')}</li>
       </ul>
       <p>You will be notified via email when your reservation is approved. You can check real time status by logging into your account and clicking on 'profie' to view pending, approved and a history of your requests.</p>
-      <small>Note: You may recieve an email titled 'Invitation from an unknown sender:'. Do not be alarmed, this is an automated message from Google notifying you that you have been added as an attendee to this calendar event.</small>
+      <small>Note: You may recieve an email titled 'Invitation from an unknown sender:'. Do not be alarmed, this is an automated message from Google notifying you that you have been added as an attendee to this calendar event. Either disregard this email or click accept to add a copy of this event any future events to your personal calendar.</small>
       <p>Thank you,</p>
       <p><strong>SJCAC Room Reservation Team</strong></p>
     `
