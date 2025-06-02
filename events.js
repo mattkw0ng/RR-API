@@ -713,10 +713,18 @@ router.post('/addEventWithRooms', async (req, res) => {
     // Prepare email data using Luxon
     const userName = req.session.user.profile.displayName;
 
-    // Send confirmation email (non-blocking)
-    sendReservationReceivedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms)
-      .then(() => console.log('Email sent'))
-      .catch((emailError) => console.error('Error sending email:', emailError));
+    if (isAdmin) {
+      // Send confirmation email (non-blocking)
+      sendReservationApprovedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms)
+        .then(() => console.log('Email sent'))
+        .catch((emailError) => console.error('Error sending email:', emailError));
+
+    } else {
+      // Send confirmation email (non-blocking)
+      sendReservationReceivedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms)
+        .then(() => console.log('Email sent'))
+        .catch((emailError) => console.error('Error sending email:', emailError));
+    }
 
     // console.log('Email sent');
     res.status(200).send('Event added');
@@ -771,7 +779,7 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
 
 // Move event from the "Pending approval" Calendar to the "approved" Calendar
 router.post('/approveEvent', async (req, res) => {
-  const { eventId } = req.body;
+  const { eventId, message } = req.body;
 
   if (!eventId) {
     return res.status(400).send('Missing required fields');
@@ -791,7 +799,8 @@ router.post('/approveEvent', async (req, res) => {
       emailDetails.eventName,
       emailDetails.eventStart,
       emailDetails.eventEnd,
-      emailDetails.roomNames
+      emailDetails.roomNames,
+      message
     ).catch((err) => console.error('Email sending failed:', err));
 
     res.status(200).json(data);
