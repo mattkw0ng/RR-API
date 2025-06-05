@@ -81,7 +81,7 @@ app.use(bodyParser.json());
 app.use((req, res, next) => {
   console.log('===== NEW INCOMING REQUEST =====')
   // Log the session ID
-  console.log('Session ID:', req.sessionID);
+  console.log('Session ID + userId:', req.sessionID, req.user?.id);
 
   // Log the request method (GET, POST, etc.)
   console.log('Request Method:', req.method);
