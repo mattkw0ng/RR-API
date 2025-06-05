@@ -59,7 +59,7 @@ const extractEventDetailsForEmail = (event) => {
   const userName = event.creator?.displayName || "User"; // TODO: use req.session.user to fill this because google does not store the name in the attendees property. OR store name somewhere else that I can read it XD
   const eventName = event.summary || "No event name";
   const eventStart = event.start.dateTime;
-  const eventEnd = event.start.dateTime;
+  const eventEnd = event.end.dateTime;
   console.log(event.extendedProperties.private);
   const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || event.attendees.filter((room) => room.resource === true)).map(
     (room) => room.email || "Unknown Room"
