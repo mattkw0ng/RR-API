@@ -21,6 +21,12 @@ const sendEmail = async (toEmail, subject, text, html) => {
     subject,
     text,
     html,
+    cc: [
+      {
+        email: 'rooms@sjcac.org', // CC to your admin
+        name: 'Room Admin'
+      }
+    ]
   };
 
   try {
@@ -37,7 +43,7 @@ const sendEmail = async (toEmail, subject, text, html) => {
 /**
  * Notify user their room reservation request has been received.
  */
-const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames) => {
+const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, htmlLink) => {
   const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
   const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
 
@@ -50,7 +56,7 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
     'Your room reservation request has been received. You will be notified upon further updates.',
     `
       <p>Dear ${userName},</p>
-      <p>We have received your room reservation request for <strong>${eventName}</strong>.</p>
+      <p>We have received your room reservation request for <strong><a href="${htmlLink}" target="_blank">${eventName}</a></strong>.</p>
       <p>Details:</p>
       <ul>
         <li><strong>Date:</strong> ${eventDate}</li>
@@ -68,7 +74,7 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
 /**
  * Notify user their room reservation request has been approved.
  */
-const sendReservationApprovedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, message="") => {
+const sendReservationApprovedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, message="", htmlLink) => {
   const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
   const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
 
@@ -81,7 +87,7 @@ const sendReservationApprovedEmail = async (userEmail, userName, eventName, even
     'Your room reservation request has been approved.',
     `
       <p>Dear ${userName},</p>
-      <p>Your room reservation request for <strong>${eventName}</strong> has been approved.</p>
+      <p>Your room reservation request for <strong><a href="${htmlLink}" target="_blank">${eventName}</a></strong> has been approved.</p>
       <p>Details:</p>
       <ul>
         <li><strong>Date:</strong> ${eventDate}</li>
@@ -140,7 +146,7 @@ const sendReservationCanceledEmail = async (userEmail, userName, eventName) => {
 /**
  * Notify user their room reservation request has been edited (Fire-and-forget).
  */
-const sendReservationEditedEmail = (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, updatedRoomNames) => {
+const sendReservationEditedEmail = (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, updatedRoomNames, htmlLink) => {
 
   const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
   const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
@@ -156,7 +162,7 @@ const sendReservationEditedEmail = (userEmail, userName, eventName, eventDateTim
       'Your room reservation request has been updated.',
       `
         <p>Dear ${userName},</p>
-        <p>Your room reservation request for <strong>${eventName}</strong> has been updated.</p>
+        <p>Your room reservation request for <strong><a href="${htmlLink}" target="_blank">${eventName}</a></strong> has been updated.</p>
         <p>Updated Details:</p>
         <ul>
           <li><strong>Date:</strong> ${eventDate}</li>
