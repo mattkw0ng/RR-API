@@ -715,13 +715,13 @@ router.post('/addEventWithRooms', async (req, res) => {
 
     if (isAdmin) {
       // Send confirmation email (non-blocking)
-      sendReservationApprovedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms)
+      sendReservationApprovedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms, response.data.htmlLink)
         .then(() => console.log('Email sent'))
         .catch((emailError) => console.error('Error sending email:', emailError));
 
     } else {
       // Send confirmation email (non-blocking)
-      sendReservationReceivedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms)
+      sendReservationReceivedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms, response.data.htmlLink)
         .then(() => console.log('Email sent'))
         .catch((emailError) => console.error('Error sending email:', emailError));
     }
@@ -800,7 +800,8 @@ router.post('/approveEvent', async (req, res) => {
       emailDetails.eventStart,
       emailDetails.eventEnd,
       emailDetails.roomNames,
-      message
+      message,
+      emailDetails.htmlLink
     ).catch((err) => console.error('Email sending failed:', err));
 
     res.status(200).json(data);
@@ -833,7 +834,8 @@ router.post('/quickApprove', async (req, res) => {
         emailDetails.eventName,
         emailDetails.eventStart,
         emailDetails.eventEnd,
-        emailDetails.roomNames
+        emailDetails.roomNames,
+        emailDetails.htmlLink
       ).catch((err) => console.error('Email sending failed:', err));;
     }
 
@@ -925,7 +927,8 @@ router.post('/editEvent', async (req, res) => {
         emailDetails.eventName,
         emailDetails.eventStart,
         emailDetails.eventEnd,
-        emailDetails.roomNames
+        emailDetails.roomNames,
+        emailDetails.htmlLink
       ).then(() => console.log('Email sent successfully in the background'))
         .catch((err) => console.error('Fire-and-forget email error:', err));
 

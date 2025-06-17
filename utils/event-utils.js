@@ -60,13 +60,14 @@ const extractEventDetailsForEmail = (event) => {
   const eventName = event.summary || "No event name";
   const eventStart = event.start.dateTime;
   const eventEnd = event.end.dateTime;
+  const htmlLink = event.htmlLink || "No link provided";
   console.log(event.extendedProperties.private);
   const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || event.attendees.filter((room) => room.resource === true)).map(
     (room) => room.email || "Unknown Room"
   );
 
   console.log("extracted data:", userEmail, userName, eventName, eventStart, eventEnd, roomNames);
-  return { userEmail, userName, eventName, eventStart, eventEnd, roomNames };
+  return { userEmail, userName, eventName, eventStart, eventEnd, roomNames, htmlLink };
 };
 
 /**
