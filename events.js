@@ -428,17 +428,18 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
     timeMin: timeMin, // ISO 8601 format
     timeMax: timeMax, // ISO 8601 format
     timeZone: "America/Los_Angeles",
-    items: roomIds // Map to calendar IDs,
+    items: roomIds // calendar IDs,
   };
 
   const response = await calendar.freebusy.query({ requestBody });
   const busyRooms = response.data.calendars;
+  console.log(">> Busy Rooms:", busyRooms);
 
   // Determine available rooms
   const availableRooms = rooms.filter((room) => {
     const calendarId = room.calendar_id;
     const roomName = room.room_name;
-    return !roomList.includes(roomName) & busyRooms[calendarId].busy.length === 0; // Room is available if no busy times
+    return !roomList.includes(roomName) & busyRooms[calendarId]?.busy.length === 0; // Room is available if no busy times
   }).map((room) => room.room_name); // Return only room names
   console.log(">> Available Rooms:", availableRooms);
 
