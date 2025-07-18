@@ -419,19 +419,22 @@ async function getEventsOnDay(auth, time, availableRooms) {
  */
 async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   const calendar = google.calendar({ version: "v3", auth });
+  const rooms = await roomsTools.GetAllRooms();
+  const roomNames = rooms.map((room) => room.room_name);
+  const roomIds = rooms.map((room) => room.calendar_id);
   const requestBody = {
     timeMin: timeMin, // ISO 8601 format
     timeMax: timeMax, // ISO 8601 format
     timeZone: "America/Los_Angeles",
-    items: Object.values(ROOM_IDS).map((id) => ({ id })),
+    items: rooms.map((room) => room.calendar_id) // Map to calendar IDs,
   };
 
   const response = await calendar.freebusy.query({ requestBody });
   const busyRooms = response.data.calendars;
 
   // Determine available rooms
-  const availableRooms = Object.keys(ROOM_IDS).filter((roomName) => {
-    const calendarId = ROOM_IDS[roomName];
+  const availableRooms = roomNames.filter((roomName) => {
+    const calendarId = roomIds[roomName];
     // console.log(busyRooms[calendarId].busy);
     return !roomList.includes(roomName) & busyRooms[calendarId].busy.length === 0; // Room is available if no busy times
   });
