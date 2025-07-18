@@ -428,7 +428,7 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
     timeMin: timeMin, // ISO 8601 format
     timeMax: timeMax, // ISO 8601 format
     timeZone: "America/Los_Angeles",
-    items: roomIds // calendar IDs,
+    items: roomIds.map((id) => ({id})) // calendar IDs,
   };
 
   const response = await calendar.freebusy.query({ requestBody });
