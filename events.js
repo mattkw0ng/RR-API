@@ -403,7 +403,7 @@ async function getEventsOnDay(auth, time, availableRooms) {
   const allEvents = response.data.items;
   const pendingEvents = pendingResponse.data.items;
   const merged = Object.fromEntries(availableRooms.map((roomName) => {
-    const targetId = ROOM_IDS[roomName];
+    const targetId = roomsTools.GetCalendarIdByRoom(roomName);
     // Filter all events by mapping attendees list into list of emails and searching for targetId within this list
     return [roomName, {
       approvedEvents: allEvents.filter((element) => element.attendees.map((e) => e.email).includes(targetId)),
@@ -435,11 +435,12 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   const busyRooms = response.data.calendars;
 
   // Determine available rooms
-  const availableRooms = roomNames.filter((roomName) => {
-    const calendarId = rooms.find((room) => room.room_name === roomName).calendar_id; // Get calendar ID for the room
-    // console.log(busyRooms[calendarId].busy);
+  const availableRooms = rooms.filter((room) => {
+    const calendarId = room.calendar_id;
+    const roomName = room.room_name;
     return !roomList.includes(roomName) & busyRooms[calendarId].busy.length === 0; // Room is available if no busy times
-  });
+  }).map((room) => room.room_name); // Return only room names
+  console.log(">> Available Rooms:", availableRooms);
 
   // console.log("Available Rooms:", availableRooms);
   return availableRooms;
