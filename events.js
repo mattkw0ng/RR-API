@@ -451,6 +451,7 @@ async function mapToRoomDetails(availableRooms, allEvents) {
     const res = await roomsTools.GetRoomDetails(room);
     allEvents[room].details = res;
   }
+  console.log(allEvents)
   return allEvents
 }
 
