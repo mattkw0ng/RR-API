@@ -420,14 +420,15 @@ async function getEventsOnDay(auth, time, availableRooms) {
 async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   const calendar = google.calendar({ version: "v3", auth });
   const rooms = await roomsTools.GetAllRooms();
-  console.log(">> getAvailableRooms - Rooms:", rooms);
   const roomNames = rooms.map((room) => room.room_name);
   const roomIds = rooms.map((room) => room.calendar_id);
+  console.log(">> Room Names:", roomNames);
+  console.log(">> Room IDs:", roomIds);
   const requestBody = {
     timeMin: timeMin, // ISO 8601 format
     timeMax: timeMax, // ISO 8601 format
     timeZone: "America/Los_Angeles",
-    items: rooms.map((room) => room.calendar_id) // Map to calendar IDs,
+    items: roomIds // Map to calendar IDs,
   };
 
   const response = await calendar.freebusy.query({ requestBody });
