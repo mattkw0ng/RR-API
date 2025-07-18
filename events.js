@@ -436,7 +436,7 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
 
   // Determine available rooms
   const availableRooms = roomNames.filter((roomName) => {
-    const calendarId = roomIds[roomName];
+    const calendarId = rooms.find((room) => room.room_name === roomName).calendar_id; // Get calendar ID for the room
     // console.log(busyRooms[calendarId].busy);
     return !roomList.includes(roomName) & busyRooms[calendarId].busy.length === 0; // Room is available if no busy times
   });
@@ -451,7 +451,7 @@ async function mapToRoomDetails(availableRooms, allEvents) {
     const res = await roomsTools.GetRoomDetails(room);
     allEvents[room].details = res;
   }
-  console.log(allEvents)
+  console.log("Available Rooms: ", allEvents);
   return allEvents
 }
 
