@@ -291,7 +291,7 @@ router.get('/numPendingEvents', async (req, res) => {
     });
 
     const pendingCalendarEvents = pendingCalendar.data.items;
-    const proposedCalendarEvents = proposedCalendar.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === true);
+    const proposedCalendarEvents = proposedCalendar.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === 'true');
 
     console.log(pendingCalendarEvents, proposedCalendarEvents);
     const num = pendingCalendarEvents.length + proposedCalendarEvents.length;
