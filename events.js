@@ -259,7 +259,9 @@ router.get('/proposedChangesEvents', async (req, res) => {
       console.log(item.extendedProperties);
     }
 
-    const events = response.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === !isUser); // Filter by needsAdminApproval
+    const boolAdminApproval = isUser ? "false" : "true"; // if isUser, then adminApproval is false, otherwise true
+
+    const events = response.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === boolAdminApproval); // Filter by needsAdminApproval
     console.log("> events after filtering", events);
     const parsedEvents = events.map((event) => unpackExtendedProperties(event));
     console.log("Parsed Proposed Events", parsedEvents);
