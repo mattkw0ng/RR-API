@@ -706,7 +706,7 @@ router.post('/addEventWithRooms', async (req, res) => {
 
     console.log("Event Details", event);
 
-    if (rRule != 'FREQ=') {
+    if (!rRule.includes('FREQ=;UNTIL')) { // Check if the rRule is valid >> if it is not, then we do not add the recurrence rule
       event.recurrence = [`RRULE:${rRule}`]
     }
 
