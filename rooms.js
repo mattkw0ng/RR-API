@@ -1,11 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('./db');
-const path = require('path');
-const fs = require('fs');
-
-const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
-const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 
 async function GetCalendarIdByRoom(room) {
   console.log("Getting calendar ID for room:", room);

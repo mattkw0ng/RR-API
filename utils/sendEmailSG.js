@@ -1,13 +1,19 @@
-const sgMail = require('@sendgrid/mail');
-const { getNumPendingEvents } = require('./event-utils')
+const nodemailer = require('nodemailer');
+const { getNumPendingEvents } = require('./event-utils');
 const { DateTime } = require('luxon');
-require('dotenv').config()
+require('dotenv').config();
 
-// Set SendGrid API Key
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Configure Nodemailer transporter
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'rooms@sjcac.org', // Your verified sender email
+    pass: process.env.NODEMAILER_PASS, // Password or App Password from Gmail
+  },
+});
 
 /**
- * Reusable function to send an email using SendGrid
+ * Reusable function to send an email using Nodemailer
  * @param {string} toEmail - The recipient's email address
  * @param {string} subject - The subject of the email
  * @param {string} text - Plain text version of the email content
@@ -15,22 +21,17 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
  * @returns {Promise<void>}
  */
 const sendEmail = async (toEmail, subject, text, html) => {
-  const msg = {
-    to: toEmail,
-    from: 'rooms@sjcac.org', // Your verified sender email
-    subject,
-    text,
-    html,
-    cc: [
-      {
-        email: 'rooms@sjcac.org', // CC to your admin
-        name: 'Room Admin'
-      }
-    ]
+  const mailOptions = {
+    from: '"SJCAC Room Reservations" <rooms@sjcac.org>', // Sender's email
+    to: toEmail, // Recipient's email
+    subject, // Email subject
+    text, // Plain text content
+    html, // HTML content
+    cc: 'rooms@sjcac.org', // CC to admin
   };
 
   try {
-    await sgMail.send(msg);
+    await transporter.sendMail(mailOptions);
     console.log(`Email sent to ${toEmail}`);
   } catch (error) {
     console.error('Error sending email:', error);
@@ -247,6 +248,7 @@ const notifyAdminsOfNewRequest = async (newEvent) => {
 };
 
 module.exports = {
+  sendEmail,
   sendReservationReceivedEmail,
   sendReservationApprovedEmail,
   sendReservationCanceledEmail,
