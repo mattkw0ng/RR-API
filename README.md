@@ -119,3 +119,38 @@ DB_NAME=your-database-name
 # SendGrid
 SENDGRID_API_KEY=your-sendgrid-api-key
 ```
+### Event Object
+```
+event = {
+    summary,
+    location,
+    description: fullDescription,
+    start: {
+      dateTime: startDateTime,
+      timeZone: 'America/Los_Angeles',
+    },
+    end: {
+      dateTime: endDateTime,
+      timeZone: 'America/Los_Angeles',
+    },
+    attendees: eventAttendees,
+    reminders: {
+      useDefault: false,
+      overrides: [],
+    },
+    extendedProperties: {
+      private: {
+        ...(isAdmin
+          ? { groupName, groupLeader, congregation, numPeople, conflictMessage } // Admin doesn't need room info here
+          : {
+            rooms: JSON.stringify(roomAttendees), // Non-admin stores room info here
+            groupName,
+            groupLeader,
+            congregation,
+            numPeople,
+            conflictMessage
+          }),
+      },
+    }
+  };
+```
