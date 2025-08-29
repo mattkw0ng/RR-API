@@ -1,5 +1,5 @@
-// Test sendEmailSG.js
-const { sendEmail, sendReservationReceivedEmail } = require('./sendEmailSG.js');
+// Test sendEmail.js
+const { sendEmail, sendReservationReceivedEmail } = require('./sendEmail.js');
 
 const testSendEmail = async () => {
   try {

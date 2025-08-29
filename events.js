@@ -21,7 +21,7 @@ const {
   sendReservationCanceledEmail,
   sendReservationEditedEmail,
   notifyAdminsOfNewRequest,
-} = require('./utils/sendEmailSG');
+} = require('./utils/sendEmail');
 
 // Get list of events
 async function listEvents(calendarId, auth, startTime, endTime) {
@@ -787,6 +787,144 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
     throw error;
   }
 };
+
+
+// Partially approve a recurring event: move non-conflicting instances to approved calendar, keep conflicts in pending
+router.post('/partiallyApproveRecurringEvent', async (req, res) => {
+  const { eventId, message } = req.body;
+  if (!eventId) {
+    return res.status(400).send('Missing required fields');
+  }
+  try {
+    const auth = await authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    // 1. Get the original event from the pending calendar
+    const eventResponse = await calendar.events.get({
+      calendarId: PENDING_APPROVAL_CALENDAR_ID,
+      eventId,
+    });
+    const event = eventResponse.data;
+
+    if (!event.recurrence) {
+      return res.status(400).send('Event is not recurring. Use normal approval.');
+    }
+
+    // 2. Get all instances of the recurring event
+    const instancesResponse = await calendar.events.instances({
+      calendarId: PENDING_APPROVAL_CALENDAR_ID,
+      eventId,
+    });
+    const instances = instancesResponse.data.items;
+
+    // 3. For each instance, check for conflicts in the approved calendar
+    const roomResources = JSON.parse(event.extendedProperties.private.rooms).map((room) => room.email);
+    const nonConflictingDates = [];
+    const conflictingInstances = [];
+    for (const instance of instances) {
+      const conflicts = await getConflictsSimple(calendar, roomResources, instance.start.dateTime, instance.end.dateTime);
+      if (conflicts.length === 0) {
+        nonConflictingDates.push(instance.start.dateTime);
+      } else {
+        conflictingInstances.push(instance);
+      }
+    }
+
+    // 4. If all instances are conflicting, do not approve
+    if (nonConflictingDates.length === 0) {
+      return res.status(409).send('All instances are conflicting. Nothing to approve.');
+    }
+
+    // 5. Build EXDATE list for conflicting dates
+    const exdates = conflictingInstances.map(inst => {
+      // Google Calendar expects EXDATE in UTC format: YYYYMMDDTHHmmssZ
+      const dt = new Date(inst.start.dateTime);
+      return dt.toISOString().replace(/[-:]/g, '').replace('.000', '').replace('T', 'T').replace('Z', 'Z');
+    });
+
+    // 6. Move the event to the approved calendar, adding EXDATEs for conflicts
+    //    (Google Calendar API: update recurrence rule with EXDATE)
+    let newRecurrence = event.recurrence.slice();
+    if (exdates.length > 0) {
+      // Add EXDATEs for each conflict
+      const exdateStr = 'EXDATE;TZID=America/Los_Angeles:' + conflictingInstances.map(inst => {
+        // Format: YYYYMMDDTHHmmss
+        const dt = new Date(inst.start.dateTime);
+        // Remove dashes and colons, keep local time
+        const local = dt.toLocaleString('sv-SE', { timeZone: 'America/Los_Angeles' }).replace(/[-:]/g, '').replace(' ', 'T');
+        return local;
+      }).join(',');
+      newRecurrence.push(exdateStr);
+    }
+
+    // Move the event to the approved calendar
+    const movedEvent = await calendar.events.move({
+      calendarId: PENDING_APPROVAL_CALENDAR_ID,
+      eventId,
+      destination: APPROVED_CALENDAR_ID,
+    });
+
+    // Update the moved event with new recurrence (EXDATE) and attendees
+    const roomAttendees = JSON.parse(movedEvent.data.extendedProperties?.private?.rooms || '[]');
+    const updatedRequestBody = {
+      summary: movedEvent.data.summary,
+      description: movedEvent.data.description,
+      start: movedEvent.data.start,
+      end: movedEvent.data.end,
+      extendedProperties: movedEvent.data.extendedProperties || {},
+      attendees: [...(movedEvent.data.attendees || []), ...roomAttendees],
+      recurrence: newRecurrence,
+    };
+    const updatedEvent = await calendar.events.update({
+      calendarId: APPROVED_CALENDAR_ID,
+      eventId: movedEvent.data.id,
+      requestBody: updatedRequestBody,
+    });
+
+    // 7. For each conflicting instance, create a new single event in the pending calendar
+    let createdCount = 0;
+    for (const inst of conflictingInstances) {
+      // Remove recurrence properties for single event
+      const newEvent = {
+        summary: `${event.summary} [SEPARATED DUE TO CONFLICT ${++createdCount}/${conflictingInstances.length}]`, // Indicate this is a separated instance
+        description: event.description,
+        start: inst.start,
+        end: inst.end,
+        attendees: event.attendees,
+        extendedProperties: event.extendedProperties,
+      };
+      await calendar.events.insert({
+        calendarId: PENDING_APPROVAL_CALENDAR_ID,
+        resource: newEvent,
+      });
+    }
+
+
+    // 8. Send partial approval email for the approved part, including conflicts
+    const { sendReservationPartiallyApprovedEmail } = require('./utils/sendEmail');
+    const emailDetails = extractEventDetailsForEmail(updatedEvent.data);
+    sendReservationPartiallyApprovedEmail(
+      emailDetails.userEmail,
+      emailDetails.userName,
+      emailDetails.eventName,
+      emailDetails.eventStart,
+      emailDetails.eventEnd,
+      emailDetails.roomNames,
+      conflictingInstances,
+      message,
+      emailDetails.htmlLink
+    ).catch((err) => console.error('Email sending failed:', err));
+
+    res.status(200).json({
+      approvedEvent: updatedEvent.data,
+      numConflictingInstances: conflictingInstances.length,
+      numApprovedInstances: nonConflictingDates.length,
+    });
+  } catch (error) {
+    console.error('Error partially approving recurring event:', error);
+    res.status(500).send('Error partially approving recurring event: ' + error.message);
+  }
+});
 
 // Move event from the "Pending approval" Calendar to the "approved" Calendar
 router.post('/approveEvent', async (req, res) => {
