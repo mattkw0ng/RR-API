@@ -2,6 +2,7 @@ const { authorize } = require('./authorize'); // Assuming you have an authorize 
 const { RRule, RRuleSet, rrulestr } = require("rrule");
 const { google } = require('googleapis');
 const { DateTime } = require('luxon');
+const roomsTools = require('../rooms');
 const pool = require('../db')
 require('dotenv').config()
 
@@ -274,7 +275,41 @@ async function getAvailability(startDateTime, endDateTime, recurrenceRule) {
   }
 }
 
+// Get the calendar IDs for the rooms (assuming you have a function to fetch them)
+async function generateRoomsAttendeesList(rooms) {
 
+  if (detectRoomsFormat(rooms) === "objectArray") { // if the format is already objectArray, do nothing
+    console.log("Room list is already in objectArray format, no need to regenerate attendees.");
+    return rooms;
+  } else if (detectRoomsFormat(rooms) === "stringArray") { // if the format is stringArray, convert to objectArray
+    console.log("Room list is in stringArray format, converting to objectArray.");
+
+    const roomAttendees = await Promise.all(
+      rooms.map(async (room) => {
+        const roomId = await roomsTools.GetCalendarIdByRoom(room);
+        return { email: roomId, resource: true };
+      })
+    );
+    console.log(`roomAttendees Stringified: ${roomAttendees}`);
+    return roomAttendees;
+  } else {
+    console.warn("Room list format is unrecognized, proceeding without changes.");
+    throw new Error("Room list format is unrecognized, cannot generate attendees.");
+  }
+}
+
+function detectRoomsFormat(rooms) {
+  if (Array.isArray(rooms)) {
+    if (rooms.length === 0) return 'unknown';
+    if (typeof rooms[0] === 'object' && rooms[0] !== null && 'email' in rooms[0]) {
+      return 'objectArray'; // [{"email":..., "resource":...}]
+    }
+    if (typeof rooms[0] === 'string') {
+      return 'stringArray'; // ["A201", "Sanctuary"]
+    }
+  }
+  return 'unknown';
+}
 
 
 module.exports = {
@@ -283,4 +318,6 @@ module.exports = {
   checkForConflicts,
   getAvailability,
   getRoomNamesFromCalendarIds,
+  generateRoomsAttendeesList,
+  detectRoomsFormat,
 };

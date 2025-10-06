@@ -44,7 +44,7 @@ const sendEmail = async (toEmail, subject, text, html) => {
 /**
  * Notify user their room reservation request has been received.
  */
-const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, htmlLink) => {
+const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, htmlLink, recurring) => {
   const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
   const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
 
@@ -53,7 +53,7 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
 
   await sendEmail(
     userEmail,
-    'Your Room Reservation Request has been Received',
+    `Your Room Reservation Request has been recieved ${recurring ? '(Recurring Event)' : ''}`,
     'Your room reservation request has been received. You will be notified upon further updates.',
     `
       <p>Dear ${userName},</p>
@@ -64,6 +64,8 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
         <li><strong>Time:</strong> ${eventTime}</li>
         <li><strong>Room(s):</strong> ${roomNames.join(', ')}</li>
       </ul>
+      ${recurring ? `<p><strong>Note:</strong> This is a recurring event. You will be notified if any instances cannot be approved due to conflicts.</p>` : ''}
+
       <p>You will be notified via email when your reservation is approved. You can check real time status <a href='https://rooms.sjcac.org/profile'>here on the profile page</a>.</p>
       <small>Note: You may recieve an email titled 'Invitation from an unknown sender:'. Do not be alarmed, this is an automated message from Google notifying you that you have been added as an attendee to this calendar event. Either disregard this email or click accept to add a copy of this event any future events to your personal calendar.</small>
       <p>Thank you,</p>
@@ -75,7 +77,7 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
 /**
  * Notify user their room reservation request has been approved.
  */
-const sendReservationApprovedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, message="", htmlLink) => {
+const sendReservationApprovedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, message="", htmlLink, recurring) => {
   const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
   const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
 
@@ -84,7 +86,7 @@ const sendReservationApprovedEmail = async (userEmail, userName, eventName, even
 
   await sendEmail(
     userEmail,
-    'Your Room Reservation Request has been Approved',
+    `Your Room Reservation Request has been approved ${recurring ? '(Recurring Event)' : ''}`,
     'Your room reservation request has been approved.',
     `
       <p>Dear ${userName},</p>
@@ -95,6 +97,8 @@ const sendReservationApprovedEmail = async (userEmail, userName, eventName, even
         <li><strong>Time:</strong> ${eventTime}</li>
         <li><strong>Room(s):</strong> ${roomNames.join(', ')}</li>
       </ul>
+
+      ${recurring ? `<p><strong>Note:</strong> This is a recurring event. If any instances cannot be approved due to conflicts, you will be notified separately.</p>` : ''}
 
       ${message ? `<p><strong>Message from the admin:</strong> ${message}</p>` : ''}
 
@@ -167,7 +171,7 @@ const sendReservationPartiallyApprovedEmail = async (
 
   await sendEmail(
     userEmail,
-    'Your Room Reservation Request has been Partially Approved',
+    'Your Room Reservation Request has been Partially Approved (Recurring Event)',
     'Your recurring room reservation request has been partially approved. Some instances could not be approved due to conflicts.',
     `
       <p>Dear ${userName},</p>

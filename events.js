@@ -14,7 +14,7 @@ const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 const { authorize } = require("./utils/authorize");
 const { unpackExtendedProperties } = require('./utils/general');
-const { extractEventDetailsForEmail, checkForConflicts, getAvailability, getRoomNamesFromCalendarIds } = require('./utils/event-utils');
+const { extractEventDetailsForEmail, checkForConflicts, getAvailability, getRoomNamesFromCalendarIds, generateRoomsAttendeesList, detectRoomsFormat } = require('./utils/event-utils');
 const {
   sendReservationReceivedEmail,
   sendReservationApprovedEmail,
@@ -430,7 +430,7 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
     timeMin: timeMin, // ISO 8601 format
     timeMax: timeMax, // ISO 8601 format
     timeZone: "America/Los_Angeles",
-    items: roomIds.map((id) => ({id})) // calendar IDs,
+    items: roomIds.map((id) => ({ id })) // calendar IDs,
   };
 
   const response = await calendar.freebusy.query({ requestBody });
@@ -556,7 +556,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     // Check each room's availability independently
     for (const pendingEvent of pendingEvents) {
       const { start, end, extendedProperties } = pendingEvent
-      console.log(`pending event printed out ${pendingEvent}`);
+      console.log('pending event printed out', pendingEvent);
       const roomsStr = extendedProperties?.private?.rooms;
       console.log(`roomsStr: ${roomsStr}`);
       const roomResources = roomsStr ? JSON.parse(roomsStr).map((room) => room.email) : []; // generate list of roomIds attatched to this event
@@ -645,13 +645,8 @@ router.post('/addEventWithRooms', async (req, res) => {
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
-    // Get the calendar IDs for the rooms (assuming you have a function to fetch them)
-    const roomAttendees = await Promise.all(
-      rooms.map(async (room) => {
-        const roomId = await roomsTools.GetCalendarIdByRoom(room);
-        return { email: roomId, resource: true };
-      })
-    );
+    // Generate list of room attendees from rooms list (For admins only)
+    const roomAttendees = await generateRoomsAttendeesList(rooms);
     console.log(roomAttendees)
 
     // add group leader, group name, congregation to the description
@@ -696,7 +691,7 @@ router.post('/addEventWithRooms', async (req, res) => {
           ...(isAdmin
             ? { groupName, groupLeader, congregation, numPeople, conflictMessage } // Admin doesn't need room info here
             : {
-              rooms: JSON.stringify(roomAttendees), // Non-admin stores room info here
+              rooms: JSON.stringify(rooms), // Non-admin requests stores room info here to avoid creating conflicts in the calendar prior to approval
               groupName,
               groupLeader,
               congregation,
@@ -710,7 +705,8 @@ router.post('/addEventWithRooms', async (req, res) => {
 
     console.log("Event Details", event);
 
-    if (!rRule.includes('FREQ=;UNTIL')) { // Check if the rRule is valid >> if it is not, then we do not add the recurrence rule
+    const eventIsRecurring = !rRule.includes('FREQ=;UNTIL');
+    if (eventIsRecurring) { // Check if the rRule is valid >> if it is not, then we do not add the recurrence rule
       event.recurrence = [`RRULE:${rRule}`]
     }
 
@@ -728,13 +724,13 @@ router.post('/addEventWithRooms', async (req, res) => {
 
     if (isAdmin) {
       // Send confirmation email (non-blocking)
-      sendReservationApprovedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms, response.data.htmlLink)
+      sendReservationApprovedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms, response.data.htmlLink, eventIsRecurring)
         .then(() => console.log('Email sent'))
         .catch((emailError) => console.error('Error sending email:', emailError));
 
     } else {
       // Send confirmation email (non-blocking)
-      sendReservationReceivedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms, response.data.htmlLink)
+      sendReservationReceivedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms, response.data.htmlLink, eventIsRecurring)
         .then(() => console.log('Email sent'))
         .catch((emailError) => console.error('Error sending email:', emailError));
     }
@@ -747,7 +743,7 @@ router.post('/addEventWithRooms', async (req, res) => {
   }
 });
 
-// New Approval Method
+// New Approval Method (moves event to approved calendar, then updates it to add rooms [as attendees] and remove unneeded extended properties)
 const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCalendarId, edits = {}) => {
   try {
     // Step 1: Move the event to the target calendar
@@ -771,7 +767,8 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
 
     // If moving to the Approved calendar, handle attendees specifically
     if (targetCalendarId === APPROVED_CALENDAR_ID) {
-      const roomAttendees = JSON.parse(movedEvent.data.extendedProperties?.private?.rooms || "[]");
+      const roomList = JSON.parse(movedEvent.data.extendedProperties?.private?.rooms || "[]");
+      const roomAttendees = await generateRoomsAttendeesList(roomList);
       updatedRequestBody.attendees = [...(movedEvent.data.attendees || []), ...roomAttendees];
     }
 
@@ -867,7 +864,10 @@ router.post('/partiallyApproveRecurringEvent', async (req, res) => {
     });
 
     // Update the moved event with new recurrence (EXDATE) and attendees
-    const roomAttendees = JSON.parse(movedEvent.data.extendedProperties?.private?.rooms || '[]');
+    // const roomAttendees = JSON.parse(movedEvent.data.extendedProperties?.private?.rooms || '[]');
+    const roomList = JSON.parse(movedEvent.data.extendedProperties?.private?.rooms || "[]");
+    const roomAttendees = await generateRoomsAttendeesList(roomList);
+
     const updatedRequestBody = {
       summary: movedEvent.data.summary,
       description: movedEvent.data.description,
@@ -1240,6 +1240,7 @@ router.get('/eventsByAttendee', async (req, res) => {
 router.delete('/rejectEvent', async (req, res) => {
   try {
     const { eventId } = req.body;
+    console.log("Event ID to delete:", eventId);
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
