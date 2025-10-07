@@ -3,6 +3,7 @@ const { getNumPendingEvents } = require('./event-utils');
 const { DateTime } = require('luxon');
 const { parseRRule } = require('../util');
 require('dotenv').config();
+const log = require('./log');
 
 // Configure Nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -33,9 +34,9 @@ const sendEmail = async (toEmail, subject, text, html) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${toEmail}`);
+    log.info(`Email sent to ${toEmail}`);
   } catch (error) {
-    console.error('Error sending email:', error);
+    log.error('Error sending email:', error);
     throw new Error('Email delivery failed');
   }
 };
@@ -269,11 +270,11 @@ const sendReservationEditedEmail = (userEmail, userName, eventName, eventDateTim
       `
     )
       .then(() => {
-        console.log(`Email sent successfully to ${userEmail}`);
+        log.info(`Email sent successfully to ${userEmail}`);
         resolve(); // Resolve the promise on success
       })
       .catch((error) => {
-        console.error(`Failed to send email to ${userEmail}:`, error);
+        log.error(`Failed to send email to ${userEmail}:`, error);
         reject(error); // Reject the promise on failure
       });
   });
@@ -333,9 +334,9 @@ const notifyAdminsOfNewRequest = async (newEvent) => {
       )
     );
 
-    console.log('Notification email sent to admins.');
+    log.info('Notification email sent to admins.');
   } catch (error) {
-    console.error('Error notifying admins:', error.message);
+    log.error('Error notifying admins:', error.message);
     throw new Error('Failed to notify admins');
   }
 };

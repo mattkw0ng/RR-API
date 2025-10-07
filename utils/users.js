@@ -25,14 +25,14 @@ const upsertUser = async (user) => {
   try {
     const result = await pool.query(query, values);
     if (result.rows.length > 0) {
-      console.log("Inserted new user:", result.rows[0]);
+      log.info("Inserted new user:", result.rows[0]);
       return result.rows[0]; // Return the inserted user
     } else {
-      console.log("User already exists, no action taken.");
+      log.info("User already exists, no action taken.");
       return null; // Return null if the user already exists
     }
   } catch (error) {
-    console.error("Error adding user:", error);
+    log.error("Error adding user:", error);
     throw error;
   }
 };
@@ -47,10 +47,10 @@ const getUserByEmail = async (userEmail) => {
 
   try {
     const result = await pool.query(query, values);
-    console.log('Selected User: ', result.rows[0]);
+    log.info('Selected User: ', result.rows[0]);
     return result.rows[0]
   } catch (err) {
-    console.error("Error getting user by email: ", err);
+    log.error("Error getting user by email: ", err);
     throw err;
   }
 }
@@ -61,9 +61,9 @@ const updateUserRole = async (email, role) => {
 
   try {
     await pool.query(query, values);
-    console.log(`Updated ${email} to role ${role}`);
+    log.info(`Updated ${email} to role ${role}`);
   } catch (error) {
-    console.error("Error updating user role:", error);
+    log.error("Error updating user role:", error);
     throw error;
   }
 };

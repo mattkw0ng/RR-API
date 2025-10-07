@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('./db');
+const log = require('./utils/log');
 
 async function GetCalendarIdByRoom(room) {
-  console.log("Getting calendar ID for room:", room);
+  log.info("Getting calendar ID for room:", room);
   const query = 'SELECT calendar_id FROM rooms WHERE room_name = $1';
   const result = await pool.query(query, [room]);
   if (result.rows.length > 0) {
@@ -18,7 +19,7 @@ async function SearchRoom(capacity, resources) {
     `SELECT * FROM rooms WHERE capacity >= $1 AND resources @> $2::text[]`,
     [capacity, resources]
   );
-  // console.log(result);
+  // log.info(result);
   return(result.rows);
 }
 
@@ -49,7 +50,7 @@ router.get('/rooms-simple', async (req, res) => {
     const result = await pool.query('SELECT * FROM rooms');
     res.json(result.rows);
   } catch (err) {
-    console.error(err.message);
+    log.error(err.message);
     res.status(500).send('Server Error');
   }
 });
@@ -81,7 +82,7 @@ router.get('/rooms', async (req, res) => {
 
     res.json({ rooms, roomsGrouped, roomListSimple });
   } catch (err) {
-    console.error('Error fetching rooms:', err);
+    log.error('Error fetching rooms:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -89,7 +90,7 @@ router.get('/rooms', async (req, res) => {
 
 router.post('/searchRoomBasic', async (req, res) => {
   const { capacity, resources } = req.body;
-  console.log(`Searching Rooms where capacity >= ${capacity} and room includes: ${resources}`);
+  log.info(`Searching Rooms where capacity >= ${capacity} and room includes: ${resources}`);
 
   if (!capacity || !resources) {
     return res.status(400).send('Missing required fields');
@@ -105,10 +106,10 @@ router.post('/searchRoomBasic', async (req, res) => {
 
   try {
     const result = await SearchRoom(capacity, resources);
-    console.log(result);
+    log.info(result);
     res.json(result);
   } catch (err) {
-    console.error(err.message);
+    log.error(err.message);
     res.status(500).send('Server Error');
   }
 });
@@ -139,7 +140,7 @@ router.post('/addRoom', async (req, res) => {
     const result = await pool.query(insertQuery, values);
     res.status(201).json({message: "Room added successfully", room: result.rows[0] });
   } catch (error) {
-    console.error("Error adding room", error);
+    log.error("Error adding room", error);
     res.status(500).json({ error: "Internal server error"});
   }
 })

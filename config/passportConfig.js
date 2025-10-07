@@ -34,7 +34,7 @@ function initializePassport(app) {
     });
 
     passport.deserializeUser((obj, done) => {
-        console.log('deserializing user: ', obj);
+        console.log('[Passport] Deserializing User: ', obj.displayName);
         done(null, obj);
     });
 }

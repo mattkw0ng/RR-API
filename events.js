@@ -23,6 +23,7 @@ const {
   notifyAdminsOfNewRequest,
 } = require('./utils/sendEmail');
 const e = require('express');
+const log = require('./utils/log');
 
 // Get list of events
 async function listEvents(calendarId, auth, startTime, endTime) {
@@ -38,7 +39,7 @@ async function listEvents(calendarId, auth, startTime, endTime) {
     });
     return response.data.items;
   } catch (err) {
-    console.error('Error fetching events:', err);
+    log.error('Error fetching events:', err);
     return [];
   }
 }
@@ -58,7 +59,7 @@ function extractRooms(input) {
   // Step 3: Clean up room names by removing anything after a colon
   const cleanedBookedRooms = bookedRooms.map(room => room.split(' :')[0].trim());
 
-  console.log(cleanedBookedRooms);
+  log.info(cleanedBookedRooms);
 
   // Step 4: Find rooms that are NOT in the bookedRooms
   // const availableRooms = Object.keys(ROOM_IDS).filter(room => !cleanedBookedRooms.includes(room));
@@ -111,7 +112,7 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
 
     return events.map((event) => unpackExtendedProperties(event));
   } catch (error) {
-    console.error('Error processing user events:', error.message);
+    log.error('Error processing user events:', error.message);
     throw error; // Re-throw the error to propagate it further if needed
   }
 }
@@ -120,7 +121,7 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
 router.get('/userEvents', async (req, res) => {
   try {
     const userEmail = req.session.user.profile.emails[0].value; // Assuming you store the user's email in session
-    console.log("++ /userEvents userEmail:", userEmail)
+    log.info("++ /userEvents userEmail:", userEmail)
     // const events = await getUserEvents(userEmail);
 
 
@@ -132,14 +133,14 @@ router.get('/userEvents', async (req, res) => {
     const proposedEvents = await getUserEvents(calendar, PROPOSED_CHANGES_CALENDAR_ID, userEmail, false);
     const pastEvents = await getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail, true);
 
-    console.log(">> (getUserEvents) pendingEvents", pendingEvents);
-    console.log(">> (getUserEvents) approvedEvents", approvedEvents);
-    console.log(">> (getUserEvents) proposedEvents", proposedEvents);
-    console.log(">> (getUserEvents) pastEvents", pastEvents);
+    log.info(">> (getUserEvents) pendingEvents", pendingEvents);
+    log.info(">> (getUserEvents) approvedEvents", approvedEvents);
+    log.info(">> (getUserEvents) proposedEvents", proposedEvents);
+    log.info(">> (getUserEvents) pastEvents", pastEvents);
 
     // Combine all events into a single object
     const result = { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed': proposedEvents, 'history': pastEvents };
-    console.log(">> (getUserEvents) result", result);
+    log.info(">> (getUserEvents) result", result);
 
     res.status(200).json(result);
   } catch (error) {
@@ -161,7 +162,7 @@ router.get('/upcomingEvents', async (req, res) => {
     const upcomingEvents = [...chapelEvents, ...sanctuaryEvents].slice(0, 5); // Combine and limit to 10 events
     res.json(upcomingEvents);
   } catch (error) {
-    console.error('Error fetching upcoming events:', error);
+    log.error('Error fetching upcoming events:', error);
     res.status(500).send('Error fetching events');
   }
 });
@@ -206,7 +207,7 @@ router.get('/approvedEvents', async (req, res) => {
 
     res.status(200).json(formatted);
   } catch (error) {
-    console.error('Error fetching approved events:', error.message);
+    log.error('Error fetching approved events:', error.message);
     res.status(500).send('Error fetching approved events: ' + error.message);
   }
 });
@@ -231,7 +232,7 @@ router.get('/eventDetails', async (req, res) => {
     const eventDetails = unpackExtendedProperties(response.data);
     res.status(200).json(eventDetails);
   } catch (error) {
-    console.error('Error fetching event details:', error.message);
+    log.error('Error fetching event details:', error.message);
     res.status(500).send('Error fetching event details: ' + error.message);
   }
 });
@@ -240,7 +241,7 @@ router.get('/eventDetails', async (req, res) => {
 router.get('/proposedChangesEvents', async (req, res) => {
   try {
     const { isUser } = req.query; // if left out, default is false aka is Admin
-    console.log("Requester is User (not admin): ", isUser);
+    log.info("Requester is User (not admin): ", isUser);
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
@@ -255,20 +256,20 @@ router.get('/proposedChangesEvents', async (req, res) => {
       singleEvents: true,
       orderBy: 'startTime',
     });
-    console.log(response.data.items);
+    log.info(response.data.items);
     for (const item of response.data.items) {
-      console.log(item.extendedProperties);
+      log.info(item.extendedProperties);
     }
 
     const boolAdminApproval = isUser ? "true" : "false"; // if isUser, then adminApproval is false, otherwise true
 
     const events = response.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === boolAdminApproval); // Filter by needsAdminApproval
-    console.log("> events after filtering", events);
+    log.info("> events after filtering", events);
     const parsedEvents = events.map((event) => unpackExtendedProperties(event));
-    console.log("Parsed Proposed Events", parsedEvents);
+    log.info("Parsed Proposed Events", parsedEvents);
     res.status(200).json(parsedEvents);
   } catch (error) {
-    console.error('Error fetching approved events:', error.message);
+    log.error('Error fetching approved events:', error.message);
     res.status(500).send('Error fetching approved events: ' + error.message);
   }
 });
@@ -294,12 +295,12 @@ router.get('/numPendingEvents', async (req, res) => {
     const pendingCalendarEvents = pendingCalendar.data.items;
     const proposedCalendarEvents = proposedCalendar.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === 'true');
 
-    console.log(pendingCalendarEvents, proposedCalendarEvents);
+    log.info(pendingCalendarEvents, proposedCalendarEvents);
     const num = pendingCalendarEvents.length + proposedCalendarEvents.length;
 
     res.status(200).json(num);
   } catch (error) {
-    console.error('Error fetching number of pending events', error.message);
+    log.error('Error fetching number of pending events', error.message);
     res.status(500).send('Error fetching number of pending events: ' + error.message);
   }
 })
@@ -324,7 +325,7 @@ router.get('/pendingEvents', async (req, res) => {
 
     res.status(200).json(parsedEvents);
   } catch (error) {
-    console.error('Error fetching pending events:', error.message);
+    log.error('Error fetching pending events:', error.message);
     res.status(500).send('Error fetching pending events: ' + error.message);
   }
 });
@@ -368,11 +369,11 @@ router.get('/getEventsByRoom', async (req, res) => {
 
     const approvedEvents = response.data.items || [];
     // filter pending events by room
-    console.log(pendingResponse)
+    log.info(pendingResponse)
     const pendingEvents = pendingResponse.data.items.filter((e) => JSON.parse(e.extendedProperties.private.rooms).find((l) => l.email === roomId))
     res.status(200).json([approvedEvents, pendingEvents]);
   } catch (error) {
-    console.error(`Error fetching events for room "${room}":`, error.message);
+    log.error(`Error fetching events for room "${room}":`, error.message);
     res.status(500).json({ error: 'Failed to fetch events for the specified room and time.' });
   }
 });
@@ -425,8 +426,8 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   const rooms = await roomsTools.GetAllRooms();
   const roomNames = rooms.map((room) => room.room_name);
   const roomIds = rooms.map((room) => room.calendar_id);
-  console.log(">> Room Names:", roomNames);
-  console.log(">> Room IDs:", roomIds);
+  log.info(">> Room Names:", roomNames);
+  log.info(">> Room IDs:", roomIds);
   const requestBody = {
     timeMin: timeMin, // ISO 8601 format
     timeMax: timeMax, // ISO 8601 format
@@ -435,9 +436,9 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
   };
 
   const response = await calendar.freebusy.query({ requestBody });
-  console.log(">> FreeBusy Response:", response.data)
+  log.info(">> FreeBusy Response:", response.data)
   const busyRooms = response.data.calendars;
-  console.log(">> Busy Rooms:", busyRooms);
+  log.info(">> Busy Rooms:", busyRooms);
 
   // Determine available rooms
   const availableRooms = rooms.filter((room) => {
@@ -445,19 +446,19 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
     const roomName = room.room_name;
     return !roomList.includes(roomName) & busyRooms[calendarId]?.busy.length === 0; // Room is available if no busy times
   }).map((room) => room.room_name); // Return only room names
-  console.log(">> Available Rooms:", availableRooms);
+  log.info(">> Available Rooms:", availableRooms);
 
-  // console.log("Available Rooms:", availableRooms);
+  // log.info("Available Rooms:", availableRooms);
   return availableRooms;
 }
 
 async function mapToRoomDetails(availableRooms, allEvents) {
-  console.log("Getting Room Details");
+  log.info("Getting Room Details");
   for (room of availableRooms) {
     const res = await roomsTools.GetRoomDetails(room);
     allEvents[room].details = res;
   }
-  console.log("Available Rooms: ", allEvents);
+  log.info("Available Rooms: ", allEvents);
   return allEvents
 }
 
@@ -467,16 +468,16 @@ async function mapToRoomDetails(availableRooms, allEvents) {
  */
 router.get('/getAvailableRooms', async (req, res) => {
   const { timeMin, timeMax, excludeRooms } = req.query;
-  console.log(req.query);
+  log.info(req.query);
   const auth = await authorize();
   try {
     const availableRooms = await getAvailableRooms(auth, timeMin, timeMax, excludeRooms);
     const allEventsOnDay = await getEventsOnDay(auth, timeMin, availableRooms);
     const allEventsWithRoomDetails = await mapToRoomDetails(availableRooms, allEventsOnDay);
-    // console.log(allEventsWithRoomDetails);
+    // log.info(allEventsWithRoomDetails);
     res.status(200).json(allEventsWithRoomDetails);
   } catch (error) {
-    console.error(`Error fetching available rooms for time: ${timeMin} - ${timeMax}:`, error.message);
+    log.error(`Error fetching available rooms for time: ${timeMin} - ${timeMax}:`, error.message);
     res.status(500).json({ error: 'Error fetching FreeBusy data' })
   }
 })
@@ -505,17 +506,17 @@ async function getConflictsSimple(calendar, roomList, start, end) {
   }
 
   const response = await calendar.freebusy.query({ requestBody });
-  console.log(response.data.calendars);
+  log.info(response.data.calendars);
 
   // filter the response by rooms that are busy (aka list of conflicts > 0) then map to an array of objects {roomId: String , times: Array}
   const filtered = Object.entries(response.data.calendars).filter((pair) => pair[1].busy.length > 0).map((pair) => ({ 'roomId': pair[0], 'times': pair[1].busy }));
-  console.log(JSON.stringify(filtered));
+  log.info(JSON.stringify(filtered));
   return filtered;
 }
 
 router.get('/checkConflicts', async (req, res) => {
   const { startDateTime, endDateTime, roomList, recurrence } = req.query;
-  console.log(req.query)
+  log.info(req.query)
 
   if (!startDateTime || !endDateTime || !roomList) {
     res.status(400).send("Missing required fields");
@@ -526,12 +527,12 @@ router.get('/checkConflicts', async (req, res) => {
     const calendar = google.calendar({ version: 'v3', auth })
 
     const conflictsImproved = await checkForConflicts(JSON.parse(roomList), startDateTime, endDateTime, recurrence);
-    console.log('>> New Conflict Detection Results:', conflictsImproved);
+    log.info('>> New Conflict Detection Results:', conflictsImproved);
     // const conflicts = await getConflictsSimple(calendar, JSON.parse(roomList), startDateTime, endDateTime);
-    // console.log('>> Old Conflict Detection Results:', conflicts);
+    // log.info('>> Old Conflict Detection Results:', conflicts);
     res.status(200).json(conflictsImproved);
   } catch (error) {
-    console.error('Error checking conflicts for event: ', startDateTime, endDateTime, roomList, error);
+    log.error('Error checking conflicts for event: ', startDateTime, endDateTime, roomList, error);
     res.status(500).send('Error checking conflicts for event: ', startDateTime, endDateTime, roomList, error)
   }
 })
@@ -557,11 +558,11 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
     // Check each room's availability independently
     for (const pendingEvent of pendingEvents) {
       const { start, end, extendedProperties } = pendingEvent
-      console.log('pending event printed out', pendingEvent);
+      log.info('[pendingEventsWithConflicts] Printing Pending Event:', pendingEvent);
       const roomsStr = extendedProperties?.private?.rooms;
-      console.log(`roomsStr: ${roomsStr}`);
+      log.info(`roomsStr: ${roomsStr}`);
       const roomResources = roomsStr ? JSON.parse(roomsStr).map((room) => room.email) : []; // generate list of roomIds attatched to this event
-      console.log(`room resources list: ${roomResources}`);
+      log.info(`room resources list: ${roomResources}`);
       // const roomResource = attendees?.find(attendee => attendee.resource === true);
 
       if (pendingEvent.recurrence) {
@@ -606,7 +607,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 
     res.status(200).json(separatedEvents);
   } catch (error) {
-    console.error('Error fetching pending events:', error.message);
+    log.error('Error fetching pending events:', error.message);
     res.status(500).send('Error fetching pending events: ' + error.message);
   }
 });
@@ -632,14 +633,14 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 
 // MAIN ROOM REQUEST FUNCTION
 router.post('/addEventWithRooms', async (req, res) => {
-  console.log("Incoming event request");
+  log.info("Incoming event request");
   const { eventName, location, description, congregation, groupName, groupLeader, numPeople, startDateTime, endDateTime, rooms, userEmail, rRule, isAdmin, otherEmail, conflictMessage } = req.body;
 
   if (!eventName || !startDateTime || !endDateTime || !rooms || rooms.length === 0) {
     return res.status(400).send('Missing required fields');
   }
 
-  console.log("RRULE: ", rRule);
+  log.info("RRULE: ", rRule);
 
   try {
     const summary = eventName
@@ -648,7 +649,7 @@ router.post('/addEventWithRooms', async (req, res) => {
 
     // Generate list of room attendees from rooms list (For admins only)
     const roomAttendees = await generateRoomsAttendeesList(rooms);
-    console.log(roomAttendees)
+    log.info(roomAttendees)
 
     // add group leader, group name, congregation to the description
     const fullDescription = `${description}
@@ -704,7 +705,7 @@ router.post('/addEventWithRooms', async (req, res) => {
     };
 
 
-    console.log("Event Details", event);
+    log.info("Event Details", event);
 
     const eventIsRecurring = !rRule.includes('FREQ=;UNTIL');
     if (eventIsRecurring) { // Check if the rRule is valid >> if it is not, then we do not add the recurrence rule
@@ -718,7 +719,7 @@ router.post('/addEventWithRooms', async (req, res) => {
       resource: event,
     });
 
-    console.log('Event created: %s', response.data.htmlLink);
+    log.info('Event created: %s', response.data.htmlLink);
 
     // Prepare email data using Luxon
     const userName = req.session.user.profile.displayName;
@@ -726,20 +727,21 @@ router.post('/addEventWithRooms', async (req, res) => {
     if (isAdmin) {
       // Send confirmation email (non-blocking)
       sendReservationApprovedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms, response.data.htmlLink, eventIsRecurring)
-        .then(() => console.log('Email sent'))
-        .catch((emailError) => console.error('Error sending email:', emailError));
+        .then(() => log.info('Email sent'))
+        .catch((emailError) => log.error('Error sending email:', emailError));
 
     } else {
       // Send confirmation email (non-blocking)
       sendReservationReceivedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms, response.data.htmlLink, eventIsRecurring)
-        .then(() => console.log('Email sent'))
-        .catch((emailError) => console.error('Error sending email:', emailError));
+        .then(() => log.info('Email sent'))
+        .catch((emailError) => log.error('Error sending email:', emailError));
     }
 
-    // console.log('Email sent');
+
+    log.track('Event created', event, req, response.data.id);
     res.status(200).send('Event added');
   } catch (error) {
-    console.error('Error adding event:', error);
+    log.error('Error adding event:', error);
     res.status(500).send('Error adding event: ' + error.message);
   }
 });
@@ -754,7 +756,7 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
       destination: targetCalendarId,
     });
 
-    console.log(`Event moved: ${movedEvent.data.id}`);
+    log.info(`Event moved: ${movedEvent.data.id}`);
 
     // Step 2: Prepare a clean update payload
     const updatedRequestBody = {
@@ -781,10 +783,10 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
       requestBody: updatedRequestBody,
     });
 
-    console.log(`Event updated: ${updatedEvent.data.id}`);
+    log.info(`Event updated: ${updatedEvent.data.id}`);
     return updatedEvent.data;
   } catch (error) {
-    console.error("Error moving or updating event:", error);
+    log.error("Error moving or updating event:", error);
     throw error;
   }
 };
@@ -917,15 +919,16 @@ router.post('/partiallyApproveRecurringEvent', async (req, res) => {
       conflictingInstances,
       message,
       emailDetails.htmlLink
-    ).catch((err) => console.error('Email sending failed:', err));
+    ).catch((err) => log.error('Email sending failed:', err));
 
+    log.track('Partially approved recurring event', { eventId, message }, req, eventId);
     res.status(200).json({
       approvedEvent: updatedEvent.data,
       numConflictingInstances: conflictingInstances.length,
       numApprovedInstances: nonConflictingDates.length,
     });
   } catch (error) {
-    console.error('Error partially approving recurring event:', error);
+    log.error('Error partially approving recurring event:', error);
     res.status(500).send('Error partially approving recurring event: ' + error.message);
   }
 });
@@ -956,11 +959,12 @@ router.post('/approveEvent', async (req, res) => {
       message,
       emailDetails.htmlLink,
       emailDetails.recurrence
-    ).catch((err) => console.error('Email sending failed:', err));
+    ).catch((err) => log.error('Email sending failed:', err));
 
+    log.track('Event approved', { eventId, message }, req, eventId);
     res.status(200).json(data);
   } catch (error) {
-    console.error('Error approving event:', error);
+    log.error('Error approving event:', error);
     res.status(500).send('Error approving event: ' + error.message);
   }
 });
@@ -990,12 +994,13 @@ router.post('/quickApprove', async (req, res) => {
         emailDetails.eventEnd,
         emailDetails.roomNames,
         emailDetails.htmlLink
-      ).catch((err) => console.error('Email sending failed:', err));;
+      ).catch((err) => log.error('Email sending failed:', err));;
     }
 
+    log.track('Quick Approved list of events', { eventIdList }, req);
     res.status(200).send('Event List Approved');
   } catch (error) {
-    console.error('Error approving list of events: ', error);
+    log.error('Error approving list of events: ', error);
     res.status(500).send('Error approving list of events: ' + error.message);
   }
 })
@@ -1014,9 +1019,10 @@ router.post('/acceptProposedChanges', async (req, res) => {
 
     await moveAndUpdateEvent(eventId, calendar, PROPOSED_CHANGES_CALENDAR_ID, APPROVED_CALENDAR_ID);
 
+    log.track('Accepted proposed changes', { eventId }, req, eventId);
     res.status(200).send('Proposed Changes have been Accepted')
   } catch (error) {
-    console.error('Error accepting proposed changes', error);
+    log.error('Error accepting proposed changes', error);
     res.status(500).send('Error accepting proposed changes' + error);
   }
 })
@@ -1051,7 +1057,7 @@ router.post('/editEvent', async (req, res) => {
   const { event, timeOrRoomChanged, adminEdit } = req.body;
   const needAdminApproval = !adminEdit; // if admin submitted these edits, the approval process should go back to the user
   if (!event || typeof timeOrRoomChanged === 'undefined') {
-    console.log("Bad Request", req.body);
+    log.info("Bad Request", req.body);
     return res.status(400).json({ error: "Invalid request. Event data and 'timeOrRoomChanged' flag are required." });
   }
 
@@ -1083,16 +1089,17 @@ router.post('/editEvent', async (req, res) => {
         emailDetails.eventEnd,
         emailDetails.roomNames,
         emailDetails.htmlLink
-      ).then(() => console.log('Email sent successfully in the background'))
-        .catch((err) => console.error('Fire-and-forget email error:', err));
+      ).then(() => log.info('Email sent successfully in the background'))
+        .catch((err) => log.error('Fire-and-forget email error:', err));
 
+      log.track('Event edited', { event, timeOrRoomChanged, adminEdit }, req, event?.id);
       return res.status(200).json({
         message: "Event updated successfully.",
         updatedEvent: updatedEvent.data,
       });
     }
   } catch (error) {
-    console.error("Error updating event:", error);
+    log.error("Error updating event:", error);
     return res.status(500).json({ error: "Failed to update event." });
   }
 });
@@ -1103,11 +1110,11 @@ const checkAvailability = async (startDateTime, endDateTime, rRule) => {
   if (!startDateTime || !endDateTime) {
     throw new Error('Missing startDateTime or endDateTime');
   }
-  // console.log('Times:', startDateTime, endDateTime, new Date(startDateTime).toISOString());
+  // log.debug(`Times: ${startDateTime}, ${endDateTime}, ${new Date(startDateTime).toISOString()}`);
 
   const conflicts = await checkForConflicts([], startDateTime, endDateTime, rRule);
   const roomNames = await getRoomNamesFromCalendarIds(conflicts);
-  console.log(">> checkAvailability: ", roomNames);
+  log.info(`checkAvailability: ${roomNames}`);
   return roomNames;
 };
 
@@ -1118,45 +1125,45 @@ router.get('/checkAvailability', async (req, res) => {
   try {
     const busyRooms = await checkAvailability(startDateTime, endDateTime);
     const allRooms = (await roomsTools.GetAllRooms()).map((room) => room.room_name);
-    console.log("Busy Rooms:", busyRooms);
-    console.log("All Rooms:", allRooms);
+    log.info("Busy Rooms:", busyRooms);
+    log.info("All Rooms:", allRooms);
     const availableRooms = allRooms.filter((room) => !busyRooms.includes(room));
-    console.log("Available Rooms:", availableRooms);
+    log.info("Available Rooms:", availableRooms);
 
     res.json(availableRooms);
   } catch (error) {
-    console.error('Error checking availability:', error.message);
+    log.error('Error checking availability:', error.message);
     res.status(400).send(error.message);
   }
 });
 
 // Filter rooms based off of time, capacity, and resources
 router.post('/filterRooms', async (req, res) => {
-  console.log("Req body:", req.body);
+  log.info("Req body:", req.body);
   const { startDateTime, endDateTime, capacity, resources } = req.body;
 
   try {
     const busyRooms = await checkAvailability(startDateTime, endDateTime);
     const matchingRooms = await roomsTools.SearchRoom(capacity, resources);
-    console.log("CheckAvailability:", busyRooms);
+    log.info("CheckAvailability:", busyRooms);
 
     const matchingRoomsNames = matchingRooms.map((elem) => {
       return elem.room_name;
     })
-    console.log("roomsTools.SearchRoom => Names:", matchingRoomsNames);
+    log.info("roomsTools.SearchRoom => Names:", matchingRoomsNames);
     const merged = matchingRoomsNames.filter((room) => {
       return !busyRooms?.includes(room);
     })
-    console.log("Res:", merged);
+    log.info("Res:", merged);
     res.json(merged);
   } catch (error) {
-    console.error('Error filtering rooms:', error.message);
+    log.error('Error filtering rooms:', error.message);
     res.status(400).send(error.message);
   }
 
 })
 
-
+// Outdated - Add event to User's primary calendar (not used in favor of /addEventWithRooms)
 router.post('/addUserEvent', async (req, res) => {
   if (!req.user) {
     return res.status(401).send('User not authenticated');
@@ -1197,14 +1204,14 @@ router.post('/addUserEvent', async (req, res) => {
       resource: event,
     }, (err, event) => {
       if (err) {
-        console.error('There was an error contacting the Calendar service:', err.message);
+        log.error('There was an error contacting the Calendar service:', err.message);
         return res.status(500).send('Error adding event: ' + err.message);
       }
-      console.log('Event created: %s', event.data.htmlLink);
+      log.info('Event created: %s', event.data.htmlLink);
       res.status(200).send('Event added to your calendar');
     });
   } catch (error) {
-    console.error('Error adding event:', error);
+    log.error('Error adding event:', error);
     res.status(500).send('Error adding event');
   }
 });
@@ -1227,7 +1234,7 @@ router.get('/eventsByAttendee', async (req, res) => {
     orderBy: 'startTime',
   }, (err, response) => {
     if (err) {
-      console.error('The API returned an error: ' + err);
+      log.error('The API returned an error: ' + err);
       return res.status(500).send('Error retrieving events');
     }
     const events = response.data.items;
@@ -1243,8 +1250,8 @@ router.get('/eventsByAttendee', async (req, res) => {
 router.delete('/rejectEvent', async (req, res) => {
   try {
     const { eventId, calendarId } = req.body;
-    console.log("Event ID to delete:", eventId);
-    console.log("Calendar ID:", calendarId);
+    log.info("Event ID to delete:", eventId);
+    log.info("Calendar ID:", calendarId);
 
     if (!eventId || !calendarId) {
       return res.status(400).json({ error: 'Missing eventId or calendarId in request body' });
@@ -1259,11 +1266,12 @@ router.delete('/rejectEvent', async (req, res) => {
 
     const userName = req.session.user.profile.displayName;
     const userEmail = req.session.user.profile.emails[0];
-    sendReservationCanceledEmail(userEmail, userName, eventId).catch((err) => console.error('Error sending email:', err));
+    sendReservationCanceledEmail(userEmail, userName, eventId).catch((err) => log.error('Error sending email:', err));
 
+    log.track('Event rejected', req.body, req, eventId);
     res.status(200).json({ message: 'Event successfully deleted' });
   } catch (error) {
-    console.error('Error deleting event:', error.message);
+    log.error('Error deleting event:', error.message);
 
     // Step 5: Handle errors
     if (error.code === 404) {

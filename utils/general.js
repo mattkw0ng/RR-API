@@ -4,14 +4,14 @@ function unpackExtendedProperties(event) {
   }
 
   const privateProps = { ...event.extendedProperties.private };
-  console.log("Unpacking extended properties:", privateProps);
+  log.info("Unpacking extended properties:", privateProps);
 
   // Conditionally parse the 'rooms' key
   if (privateProps.rooms && typeof privateProps.rooms === "string") {
     try {
       privateProps.rooms = JSON.parse(privateProps.rooms);
     } catch (error) {
-      console.error("Error parsing 'rooms':", error);
+      log.error("Error parsing 'rooms':", error);
     }
   }
 
@@ -20,7 +20,7 @@ function unpackExtendedProperties(event) {
     try {
       privateProps.originalRooms = JSON.parse(privateProps.originalRooms);
     } catch (error) {
-      console.error("Error parsing 'originalRooms':", error);
+      log.error("Error parsing 'originalRooms':", error);
     }
   }
 

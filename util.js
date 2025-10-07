@@ -1,6 +1,7 @@
 const fs = require("fs");
 const readline = require("readline");
 const { google } = require("googleapis");
+const log = require("./utils/log");
 
 const SCOPES = [
   "https://www.googleapis.com/auth/gmail.send",
@@ -15,7 +16,7 @@ async function getAccessToken(oAuth2Client) {
     access_type: "offline",
     scope: SCOPES,
   });
-  console.log("Authorize this app by visiting this url:", authUrl);
+  log.info("Authorize this app by visiting this url:", authUrl);
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -27,12 +28,12 @@ async function getAccessToken(oAuth2Client) {
       rl.close();
       oAuth2Client.getToken(code, (err, token) => {
         if (err) {
-          console.error("Error retrieving access token", err);
+          log.error("Error retrieving access token", err);
           return reject(err);
         }
         oAuth2Client.setCredentials(token);
         fs.writeFileSync(TOKEN_PATH, JSON.stringify(token));
-        console.log("Token stored to", TOKEN_PATH);
+        log.info("Token stored to", TOKEN_PATH);
         resolve(oAuth2Client);
       });
     });
@@ -68,7 +69,7 @@ function unpackExtendedProperties(event) {
     try {
       privateProps.rooms = JSON.parse(privateProps.rooms);
     } catch (error) {
-      console.error("Error parsing 'rooms':", error);
+      log.error("Error parsing 'rooms':", error);
     }
   }
 
@@ -77,7 +78,7 @@ function unpackExtendedProperties(event) {
     try {
       privateProps.originalRooms = JSON.parse(privateProps.originalRooms);
     } catch (error) {
-      console.error("Error parsing 'originalRooms':", error);
+      log.error("Error parsing 'originalRooms':", error);
     }
   }
 
@@ -93,7 +94,7 @@ function unpackExtendedProperties(event) {
 
 function parseRRule(rRule) {
   if (!rRule) return "No recurrence set.";
-  console.log("Parsing rRule: ", rRule)
+  log.info("Parsing rRule: ", rRule)
   // Split the rRule into key-value pairs
   const ruleParts = rRule
     .replace("RRULE:", "")
@@ -125,7 +126,7 @@ function parseRRule(rRule) {
   const freq = frequencyMap[ruleParts.FREQ] || "custom recurrence";
   const interval = ruleParts.INTERVAL ? `every ${ruleParts.INTERVAL} ${freq}${ruleParts.INTERVAL > 1 ? 's' : ''}` : `every ${freq}`;
   const count = ruleParts.COUNT ? ` ${ruleParts.COUNT} time${ruleParts.COUNT > 1 ? 's' : ''}` : "";
-  console.log("ParseRRule ruleparts.until: ", ruleParts.UNTIL);
+  log.info("ParseRRule ruleparts.until: ", ruleParts.UNTIL);
 
   const rruleDateString = ruleParts.UNTIL;
   const formattedDate = rruleDateString ? new Date(

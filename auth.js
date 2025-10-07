@@ -7,6 +7,7 @@ const { google } = require('googleapis');
 const { CLIENT_URL } = require('./config/config');
 const { upsertUser, getUserByEmail, updateUserRole } = require('./utils/users');
 const { isAuthenticated, isAdmin } = require('./middlewares/auth');
+const log = require('./utils/log');
 
 async function authorizeUser(email) {
   const result = await pool.query('SELECT access_token, refresh_token, token_expiry FROM users WHERE email = $1', [email]);
@@ -33,7 +34,7 @@ async function authorizeUser(email) {
           [access_token, expiry_date, email]
         );
       } catch (error) {
-        console.error('Error refreshing access token:', error);
+        log.error('Error refreshing access token:', error);
       }
     }
 
@@ -60,7 +61,7 @@ router.get('/auth/google', (req, res, next) => {
 router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: CLIENT_URL + '/login' }), // Redirect to React router's login page on failure
   async (req, res) => {
     try {
-      console.log('=======get /auth/google/callback======= session before\n', req.sessionID, req.session)
+      log.info('=======get /auth/google/callback======= session before\n', req.sessionID, req.session)
       const profile = req.user.profile;
 
       // Extract user details from the Google profile
@@ -78,18 +79,18 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
       const returnPath = req.session.returnPath || "/";
       delete req.session.returnPath;
 
-      console.log('=======get /auth/google/callback======= session after\n', req.sessionID, req.session, returnPath);
+      log.info('=======get /auth/google/callback======= session after\n', req.sessionID, req.session, returnPath);
 
       req.session.save((err) => {
         if (err) {
-          console.error('Error saving session', err);
+          log.error('Error saving session', err);
         } else {
-          console.log("Session successfully saved to Redis", req.session);
+          log.info("Session successfully saved to Redis", req.session);
         }
       })
       res.redirect(CLIENT_URL + returnPath); // Redirect to React router's home page on success
     } catch (err) {
-      console.error('Error handling Google callback', err);
+      log.error('Error handling Google callback', err);
       res.status(500).send('Error handling Google callback: ' + err.message)
     }
 
@@ -105,7 +106,7 @@ router.get('/logout', (req, res) => {
 });
 
 router.get('/test', (req, res) => {
-  console.log(req.header);
+  log.info(req.header);
   res.send("Hello world")
 })
 
@@ -118,7 +119,7 @@ router.get('/set-cookie', (req, res) => {
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
   });
   res.on('finish', () => {
-    console.log(`XX= Request to ${req.method} ${req.url} - Response headers:`, res.getHeaders());
+    log.info(`XX= Request to ${req.method} ${req.url} - Response headers:`, res.getHeaders());
   });
   res.send('Cookie has been set');
 });
@@ -126,15 +127,15 @@ router.get('/set-cookie', (req, res) => {
 router.get('/get-cookie', (req, res) => {
   // Checking if the cookie was set
   const cookie = req.cookies;
-  console.log(req.cookies)
+  log.info(req.cookies)
   res.send(`Cookie received: ${cookie}`);
 });
 
 router.get('/auth/user', async (req, res) => {
-  console.log('=======get /auth/user=======\n', req.session);
+  log.info('=======get /auth/user=======\n', req.session);
   if (req.isAuthenticated()) {
-    console.log("Authenticated")
-    // console.log({ user: req.user.profile })
+    log.info("Authenticated")
+    // log.info({ user: req.user.profile })
     const dbUser = await getUserByEmail(req.user.profile.emails[0].value);
     if (!dbUser) {
       return res.status(404).json({error: 'User not found in database'});
@@ -147,7 +148,7 @@ router.get('/auth/user', async (req, res) => {
       role: dbUser.role
     } }); // Send user info to frontend if authenticated
   } else {
-    console.log("Not Authenticated")
+    log.info("Not Authenticated")
     res.status(401).json({ error: 'Not authenticated' }); // Send error if not authenticated
   }
 });
@@ -156,7 +157,7 @@ router.get('/auth/getUserByEmail', async (req, res) => {
   const { userEmail } = req.query;
   if (userEmail) {
     const userData = await getUserByEmail(userEmail);
-    console.log("Fetched User Data: ", userData);
+    log.info("Fetched User Data: ", userData);
     res.json(userData);
   } else {
     res.status(500).send('No email provided');
@@ -178,7 +179,7 @@ router.post('/admin', isAuthenticated, isAdmin, async (req, res) => {
     await updateUserRole(email, 'admin');
     res.status(200).json({message: `User ${email} has been promoted to admin`});
   } catch (error) {
-    console.error("Error promoting user to admin", error);
+    log.error("Error promoting user to admin", error);
     res.status(500).json({error: 'Server Error'})
   }
 })
@@ -190,11 +191,11 @@ router.post('/auth/login', (req, res) => {
 
   req.session.save((err) => {
     if (err) {
-      console.error('Session save error', err);
+      log.error('Session save error', err);
     }
-    console.log("Session data: ", req.sessionID, req.session);
+    log.info("Session data: ", req.sessionID, req.session);
     res.on('finish', () => {
-      console.log(`XX= Request to ${req.method} ${req.url} - Response headers:`, res.getHeaders());
+      log.info(`XX= Request to ${req.method} ${req.url} - Response headers:`, res.getHeaders());
     });
     res.send({ message: "Logged in" });
   })
@@ -207,7 +208,7 @@ router.get('/', (req, res) => {
 
 router.get('/oauth2callback', (req, res) => {
   const code = req.query.code;
-  console.log(code);
+  log.info(code);
 });
 
 module.exports = router;
