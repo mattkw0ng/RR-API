@@ -25,13 +25,11 @@ function getCallerInfo() {
  * Logs a message at the specified level with optional indentation.
  * Accepts any number of arguments, objects are pretty-printed.
  * @param {string} level - Log level (info, warn, error, debug)
- * @param {number} indent - Indentation level (number of 2-space indents)
  * @param {...any} args - Message and additional data to log
  */
-function log(level, indent, ...args) {
+function log(level, ...args) {
   const { func, file, line } = getCallerInfo();
-  const prefix = `[${level.toUpperCase()}][${file}:${line}|(${func})]`;
-  const indentation = ' '.repeat(indent * 2);
+  const prefix = `[${file}:${line}|(${func})]`;
   // Format all args as string, join with space
   const message = args.map(arg => {
     if (typeof arg === 'object') {
@@ -43,7 +41,7 @@ function log(level, indent, ...args) {
     }
     return String(arg);
   }).join(' ');
-  console.log(`\n${indentation}${prefix}\n${message}\n${prefix}`);
+  console.log(`[${level.toUpperCase()}]${prefix}\n${message}\n++${prefix}`);
 }
 
 
@@ -92,10 +90,10 @@ async function trackError(message, error, req) {
 }
 
 module.exports = {
-  info: (...args) => log('info', 0, ...args), // Indent info logs by default (2*2=4 spaces)
-  warn: (...args) => log('warn', 0, ...args),
-  error: (...args) => log('error', 0, ...args),
-  debug: (...args) => log('debug', 0, ...args),
+  info: (...args) => log('info', ...args), // Indent info logs by default (2*2=4 spaces)
+  warn: (...args) => log('warn', ...args),
+  error: (...args) => log('error', ...args),
+  debug: (...args) => log('debug', ...args),
   track,
   trackError
 };
