@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
 const { getNumPendingEvents } = require('./event-utils');
 const { DateTime } = require('luxon');
+const { parseRRule } = require('../util');
 require('dotenv').config();
 
 // Configure Nodemailer transporter
@@ -44,7 +45,7 @@ const sendEmail = async (toEmail, subject, text, html) => {
 /**
  * Notify user their room reservation request has been received.
  */
-const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, htmlLink, recurring) => {
+const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, htmlLink, recurring=false) => {
   const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
   const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
 
@@ -64,6 +65,7 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
         <li><strong>Time:</strong> ${eventTime}</li>
         <li><strong>Room(s):</strong> ${roomNames.join(', ')}</li>
       </ul>
+      ${recurring ? `<p>${parseRRule(recurring)}</p>` : ''}
       ${recurring ? `<p><strong>Note:</strong> This is a recurring event. You will be notified if any instances cannot be approved due to conflicts.</p>` : ''}
 
       <p>You will be notified via email when your reservation is approved. You can check real time status <a href='https://rooms.sjcac.org/profile'>here on the profile page</a>.</p>
@@ -77,7 +79,7 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
 /**
  * Notify user their room reservation request has been approved.
  */
-const sendReservationApprovedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, message="", htmlLink, recurring) => {
+const sendReservationApprovedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, message="", htmlLink, recurring=false) => {
   const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
   const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
 
@@ -97,7 +99,7 @@ const sendReservationApprovedEmail = async (userEmail, userName, eventName, even
         <li><strong>Time:</strong> ${eventTime}</li>
         <li><strong>Room(s):</strong> ${roomNames.join(', ')}</li>
       </ul>
-
+      ${recurring ? `<p>${parseRRule(recurring)}</p>` : ''}
       ${recurring ? `<p><strong>Note:</strong> This is a recurring event. If any instances cannot be approved due to conflicts, you will be notified separately.</p>` : ''}
 
       ${message ? `<p><strong>Message from the admin:</strong> ${message}</p>` : ''}

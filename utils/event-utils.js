@@ -66,9 +66,10 @@ const extractEventDetailsForEmail = (event) => {
   const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || event.attendees.filter((room) => room.resource === true)).map(
     (room) => room.email || "Unknown Room"
   );
+  const recurrence = event.recurrence ? event.recurrence[0] : null;
 
-  console.log("extracted data:", userEmail, userName, eventName, eventStart, eventEnd, roomNames);
-  return { userEmail, userName, eventName, eventStart, eventEnd, roomNames, htmlLink };
+  console.log("extracted data:", userEmail, userName, eventName, eventStart, eventEnd, roomNames, htmlLink, recurrence);
+  return { userEmail, userName, eventName, eventStart, eventEnd, roomNames, htmlLink, recurrence };
 };
 
 /**
