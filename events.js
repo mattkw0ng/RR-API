@@ -109,6 +109,7 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
       const startB = new Date(b.start.dateTime || b.start.date).getTime();
       return startA - startB; // Ascending order (earliest first)
     });
+    log.info(events);
 
     return events.map((event) => unpackExtendedProperties(event));
   } catch (error) {
@@ -1114,7 +1115,7 @@ const checkAvailability = async (startDateTime, endDateTime, rRule) => {
 
   const conflicts = await checkForConflicts([], startDateTime, endDateTime, rRule);
   const roomNames = await getRoomNamesFromCalendarIds(conflicts);
-  log.info(`checkAvailability: ${roomNames}`);
+  log.info(`checkAvailability:`, roomNames);
   return roomNames;
 };
 
