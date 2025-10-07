@@ -3,15 +3,35 @@ const path = require('path');
 
 function getCallerInfo() {
   const stack = new Error().stack.split('\n');
-  // stack[3] is the caller of info/warn/error/debug, stack[2] is direct log()
-  const callerLine = stack[4] || stack[3] || '';
-  const match = callerLine.match(/at (\S+) \(([^:]+):(\d+):(\d+)\)/) || callerLine.match(/at ([^ ]+) \(([^)]+)\)/);
-  if (match) {
-    const func = match[1];
-    const file = path.basename(match[2] || '');
-    return { func, file };
+  // Try to find the first stack line outside log.js
+  let callerLine = '';
+  for (let i = 2; i < stack.length; i++) {
+    if (!stack[i].includes('log.js')) {
+      callerLine = stack[i];
+      break;
+    }
   }
-  return { func: 'unknown', file: 'unknown' };
+  // Robust regex for function and file extraction
+  let func = 'anonymous';
+  let file = 'unknown';
+  let match = callerLine.match(/at ([^ ]+) \(([^:]+):(\d+):(\d+)\)/);
+  if (match) {
+    func = match[1];
+    file = path.basename(match[2]);
+  } else {
+    match = callerLine.match(/at ([^ ]+) \(([^)]+)\)/);
+    if (match) {
+      func = match[1];
+      file = path.basename(match[2]);
+    } else {
+      match = callerLine.match(/at ([^ ]+) ([^ ]+)/);
+      if (match) {
+        func = match[1];
+        file = path.basename(match[2]);
+      }
+    }
+  }
+  return { func, file };
 }
 
 /**
@@ -85,7 +105,7 @@ async function trackError(message, error, req) {
 }
 
 module.exports = {
-  info: (...args) => log('info', 2, ...args), // Indent info logs by default (2*2=4 spaces)
+  info: (...args) => log('info', 0, ...args), // Indent info logs by default (2*2=4 spaces)
   warn: (...args) => log('warn', 0, ...args),
   error: (...args) => log('error', 0, ...args),
   debug: (...args) => log('debug', 0, ...args),
