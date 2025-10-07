@@ -1,4 +1,5 @@
 const pool = require('../db');
+const log = require('./log');
 
 /**
  * Upserts a user into the database.
