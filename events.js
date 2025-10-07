@@ -1239,13 +1239,18 @@ router.get('/eventsByAttendee', async (req, res) => {
 // Reject a pending Event (delete?) might need to change this in the future to move to rejected calendar
 router.delete('/rejectEvent', async (req, res) => {
   try {
-    const { eventId } = req.body;
+    const { eventId, calendarId } = req.body;
     console.log("Event ID to delete:", eventId);
+    console.log("Calendar ID:", calendarId);
+
+    if (!eventId || !calendarId) {
+      return res.status(400).json({ error: 'Missing eventId or calendarId in request body' });
+    }
     const auth = await authorize();
     const calendar = google.calendar({ version: 'v3', auth });
 
     await calendar.events.delete({
-      calendarId: PENDING_APPROVAL_CALENDAR_ID, // Pending Calendar ID
+      calendarId: calendarId, // Pending Calendar ID
       eventId: eventId, // Event ID
     });
 
