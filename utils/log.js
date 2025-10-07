@@ -28,7 +28,7 @@ function getCallerInfo() {
  * @param {...any} args - Message and additional data to log
  */
 function log(level, ...args) {
-  const { func, file, line } = getCallerInfo();
+  const { func, file, line } = getCallerInfo();git 
   const prefix = `[${file}:${line}|(${func})]`;
   // Format all args as string, join with space
   const message = args.map(arg => {
@@ -41,7 +41,7 @@ function log(level, ...args) {
     }
     return String(arg);
   }).join(' ');
-  console.log(`[${level.toUpperCase()}]${prefix}\n${message}\n++${prefix}`);
+  console.log(`>>[${level.toUpperCase()}]${prefix}\n${message}\n<<${prefix}`);
 }
 
 
