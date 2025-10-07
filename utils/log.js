@@ -1,16 +1,10 @@
 const path = require('path');
 
-/**
- * Logs a message at the specified level with optional indentation.
- * Accepts any number of arguments, objects are pretty-printed.
- * @param {string} level - Log level (info, warn, error, debug)
- * @param {number} indent - Indentation level (number of 2-space indents)
- * @param {...any} args - Message and additional data to log
- */
+
 function getCallerInfo() {
   const stack = new Error().stack.split('\n');
   // stack[3] is the caller of info/warn/error/debug, stack[2] is direct log()
-  const callerLine = stack[3] || stack[2] || '';
+  const callerLine = stack[4] || stack[3] || '';
   const match = callerLine.match(/at (\S+) \(([^:]+):(\d+):(\d+)\)/) || callerLine.match(/at ([^ ]+) \(([^)]+)\)/);
   if (match) {
     const func = match[1];
@@ -20,9 +14,16 @@ function getCallerInfo() {
   return { func: 'unknown', file: 'unknown' };
 }
 
+/**
+ * Logs a message at the specified level with optional indentation.
+ * Accepts any number of arguments, objects are pretty-printed.
+ * @param {string} level - Log level (info, warn, error, debug)
+ * @param {number} indent - Indentation level (number of 2-space indents)
+ * @param {...any} args - Message and additional data to log
+ */
 function log(level, indent, ...args) {
   const { func, file } = getCallerInfo();
-  const prefix = `[${level.toUpperCase()}] ${file}:${func}`;
+  const prefix = `[${level.toUpperCase()}][${file}|${func}]`;
   const indentation = ' '.repeat(indent * 2);
   // Format all args as string, join with space
   const message = args.map(arg => {
