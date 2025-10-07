@@ -106,6 +106,7 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
       }
     }
 
+    log.info(">> events before unpacking", events);
     events.sort((a, b) => {
       const startA = new Date(a.start.dateTime || a.start.date).getTime();
       const startB = new Date(b.start.dateTime || b.start.date).getTime();
