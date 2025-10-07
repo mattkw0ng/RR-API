@@ -1,3 +1,5 @@
+const log = require("./log");
+
 function unpackExtendedProperties(event) {
   if (!event.extendedProperties || !event.extendedProperties.private) {
     return event; // Return the event unchanged if no extendedProperties are found
