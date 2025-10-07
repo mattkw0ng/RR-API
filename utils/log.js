@@ -3,7 +3,6 @@ const path = require('path');
 
 function getCallerInfo() {
   const stack = new Error().stack.split('\n');
-  // Try to find the first stack line outside log.js
   let callerLine = '';
   for (let i = 2; i < stack.length; i++) {
     if (!stack[i].includes('log.js')) {
@@ -11,27 +10,15 @@ function getCallerInfo() {
       break;
     }
   }
-  // Robust regex for function and file extraction
-  let func = 'anonymous';
-  let file = 'unknown';
-  let match = callerLine.match(/at ([^ ]+) \(([^:]+):(\d+):(\d+)\)/);
+  // Try to extract file, line, and column
+  const match = callerLine.match(/at (?:([^ ]+) )?\(?([^:]+):(\d+):(\d+)\)?/);
   if (match) {
-    func = match[1];
-    file = path.basename(match[2]);
-  } else {
-    match = callerLine.match(/at ([^ ]+) \(([^)]+)\)/);
-    if (match) {
-      func = match[1];
-      file = path.basename(match[2]);
-    } else {
-      match = callerLine.match(/at ([^ ]+) ([^ ]+)/);
-      if (match) {
-        func = match[1];
-        file = path.basename(match[2]);
-      }
-    }
+    const func = match[1] || 'anonymous';
+    const file = path.basename(match[2]);
+    const line = match[3];
+    return { func, file, line };
   }
-  return { func, file };
+  return { func: 'unknown', file: 'unknown', line: '?' };
 }
 
 /**
@@ -42,8 +29,8 @@ function getCallerInfo() {
  * @param {...any} args - Message and additional data to log
  */
 function log(level, indent, ...args) {
-  const { func, file } = getCallerInfo();
-  const prefix = `[${level.toUpperCase()}][${file}|${func}]`;
+  const { func, file, line } = getCallerInfo();
+  const prefix = `[${level.toUpperCase()}][${file}:${line}|(${func})]`;
   const indentation = ' '.repeat(indent * 2);
   // Format all args as string, join with space
   const message = args.map(arg => {
