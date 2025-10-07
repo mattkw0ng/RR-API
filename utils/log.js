@@ -41,7 +41,11 @@ function log(level, ...args) {
     }
     return String(arg);
   }).join(' ');
-  console.log(`>>[${level.toUpperCase()}]${prefix}\n${message}\n<<${prefix}`);
+  console.log(`[${level.toUpperCase()}]${prefix}`);
+  console.group();
+  console.log(message);
+  console.groupEnd();
+  console.log(`${prefix}`);
 }
 
 
