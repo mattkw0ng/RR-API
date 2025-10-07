@@ -22,6 +22,7 @@ const {
   sendReservationEditedEmail,
   notifyAdminsOfNewRequest,
 } = require('./utils/sendEmail');
+const e = require('express');
 
 // Get list of events
 async function listEvents(calendarId, auth, startTime, endTime) {
@@ -762,6 +763,7 @@ const moveAndUpdateEvent = async (eventId, calendar, sourceCalendarId, targetCal
       start: movedEvent.data.start, // Preserve the start time
       end: movedEvent.data.end, // Preserve the end time
       extendedProperties: movedEvent.data.extendedProperties || {}, // Preserve extended properties
+      ...(movedEvent.data.recurrence ? { recurrence: movedEvent.data.recurrence } : {}), // Preserve recurrence if it exists
       ...edits, // Apply any additional edits
     };
 
@@ -952,7 +954,8 @@ router.post('/approveEvent', async (req, res) => {
       emailDetails.eventEnd,
       emailDetails.roomNames,
       message,
-      emailDetails.htmlLink
+      emailDetails.htmlLink,
+      emailDetails.recurrence
     ).catch((err) => console.error('Email sending failed:', err));
 
     res.status(200).json(data);
