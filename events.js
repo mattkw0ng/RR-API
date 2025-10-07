@@ -95,7 +95,7 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
       if (currEvent.recurrence) {
         // For recurring events, find all instances and check conflicts for each instance
         const instancesResponse = await calendar.events.instances({
-          calendarId: PENDING_APPROVAL_CALENDAR_ID,
+          calendarId: calendarId,
           eventId: currEvent.id,
         });
         const instances = instancesResponse.data.items;
