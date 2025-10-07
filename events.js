@@ -86,13 +86,11 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
   }
 
   try {
-    log.info('Fetching events with options:', queryOptions);
     const response = await calendar.events.list(queryOptions);
     // Filter the events by matching the user's email in the attendees
     const events = response.data.items.filter(event =>
       event.attendees && event.attendees.some(attendee => attendee.email === userEmail && event.extendedProperties?.private?.adminApproval !== "true")
     );
-    log.info(`Found ${events.length} events for user ${userEmail} in calendar ${calendarId}`);
     for (currEvent of events) {
       if (currEvent.recurrence) {
         // For recurring events, find all instances and check conflicts for each instance
@@ -101,18 +99,15 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
           eventId: currEvent.id,
         });
         const instances = instancesResponse.data.items;
-        log.info(`Found ${instances.length} instances for recurring event ${currEvent.id}`);
         currEvent.instances = instances.map((e) => unpackExtendedProperties(e));
       }
     }
 
-    log.info(">> events before unpacking", events);
     events.sort((a, b) => {
       const startA = new Date(a.start.dateTime || a.start.date).getTime();
       const startB = new Date(b.start.dateTime || b.start.date).getTime();
       return startA - startB; // Ascending order (earliest first)
     });
-    log.info(events);
 
     return events.map((event) => unpackExtendedProperties(event));
   } catch (error) {
