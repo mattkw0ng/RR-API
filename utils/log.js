@@ -1,4 +1,5 @@
 const path = require('path');
+const pool = require('../db'); // Assume a PostgreSQL pool is exported from db.js
 
 
 function getCallerInfo() {
