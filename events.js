@@ -68,6 +68,7 @@ function extractRooms(input) {
 };
 
 async function getUserEvents(calendar, calendarId, userEmail, history) {
+  log.info(`getUserEvents: calendarId=${calendarId}, userEmail=${userEmail}, history=${history}`);
   const now = new Date();
 
   const queryOptions = {
@@ -85,12 +86,13 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
   }
 
   try {
+    log.info('Fetching events with options:', queryOptions);
     const response = await calendar.events.list(queryOptions);
     // Filter the events by matching the user's email in the attendees
     const events = response.data.items.filter(event =>
       event.attendees && event.attendees.some(attendee => attendee.email === userEmail && event.extendedProperties?.private?.adminApproval !== "true")
     );
-
+    log.info(`Found ${events.length} events for user ${userEmail} in calendar ${calendarId}`);
     for (currEvent of events) {
       if (currEvent.recurrence) {
         // For recurring events, find all instances and check conflicts for each instance
