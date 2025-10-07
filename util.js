@@ -58,6 +58,7 @@ async function authorize() {
 
 
 function unpackExtendedProperties(event) {
+  log.info("Unpacking extended properties for event ID:", event.id);
   if (!event.extendedProperties || !event.extendedProperties.private) {
     return event; // Return the event unchanged if no extendedProperties are found
   }

@@ -101,7 +101,7 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
           eventId: currEvent.id,
         });
         const instances = instancesResponse.data.items;
-
+        log.info(`Found ${instances.length} instances for recurring event ${currEvent.id}`);
         currEvent.instances = instances.map((e) => unpackExtendedProperties(e));
       }
     }
