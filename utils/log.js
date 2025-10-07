@@ -43,7 +43,7 @@ function log(level, indent, ...args) {
     }
     return String(arg);
   }).join(' ');
-  console.log(`${indentation}${prefix}\n${message}\n${prefix}\n`);
+  console.log(`\n${indentation}${prefix}\n${message}\n${prefix}`);
 }
 
 
