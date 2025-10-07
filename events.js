@@ -115,6 +115,7 @@ async function getUserEvents(calendar, calendarId, userEmail, history) {
 
     return events.map((event) => unpackExtendedProperties(event));
   } catch (error) {
+    console.error('Error processing user events:', error.message);
     log.error('Error processing user events:', error.message);
     throw error; // Re-throw the error to propagate it further if needed
   }
