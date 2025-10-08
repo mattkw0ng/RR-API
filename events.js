@@ -561,8 +561,31 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
       log.info('[pendingEventsWithConflicts] Printing Pending Event:', pendingEvent);
       const roomsStr = extendedProperties?.private?.rooms;
       log.info(`roomsStr: ${roomsStr}`);
-      const roomResources = roomsStr ? JSON.parse(roomsStr).map((room) => room.email) : []; // generate list of roomIds attatched to this event
-      log.info(`room resources list: ${roomResources}`);
+      // Normalize rooms field to always be array of room names
+      let roomResources = [];
+      if (roomsStr) {
+        try {
+          const parsedRooms = JSON.parse(roomsStr);
+          if (Array.isArray(parsedRooms)) {
+            if (parsedRooms.length === 0) {
+              roomResources = [];
+            } else if (typeof parsedRooms[0] === 'string') {
+              // Already array of room names
+              roomResources = parsedRooms;
+            } else if (typeof parsedRooms[0] === 'object' && parsedRooms[0].email) {
+              // Array of objects, extract room names from email
+              roomResources = parsedRooms.map(r => {
+                // Use your mapping function to get room name from calendarId
+                return roomsTools.GetRoomNameByCalendarId ? roomsTools.GetRoomNameByCalendarId(r.email) : r.email;
+              });
+            }
+          }
+        } catch (e) {
+          log.error('Error parsing roomsStr:', e);
+          roomResources = [];
+        }
+      }
+      log.info(`Normalized room resources list: ${roomResources}`);
       // const roomResource = attendees?.find(attendee => attendee.resource === true);
 
       if (pendingEvent.recurrence) {

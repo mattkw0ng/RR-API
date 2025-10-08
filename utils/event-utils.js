@@ -5,6 +5,7 @@ const { DateTime } = require('luxon');
 const roomsTools = require('../rooms');
 const pool = require('../db')
 require('dotenv').config()
+const log = require('./log');
 
 // Constants for your calendar IDs
 const PENDING_APPROVAL_CALENDAR_ID = process.env.PENDING_APPROVAL_CALENDAR_ID;
@@ -39,7 +40,7 @@ const getNumPendingEvents = async () => {
 
     return pendingCalendarEvents.length + proposedCalendarEvents.length;
   } catch (error) {
-    console.error('Error fetching pending events:', error.message);
+    log.error('Error fetching pending events:', error.message);
     throw new Error('Failed to fetch pending events');
   }
 };
@@ -55,20 +56,20 @@ const extractEventDetailsForEmail = (event) => {
   }
 
   const userAttendee = event.attendees?.find((attendee) => attendee.email && !attendee.resource);
-  console.log("userAttendee: ", userAttendee);
+  log.info("userAttendee: ", userAttendee);
   const userEmail = userAttendee?.email || "No email provided";
   const userName = event.creator?.displayName || "User"; // TODO: use req.session.user to fill this because google does not store the name in the attendees property. OR store name somewhere else that I can read it XD
   const eventName = event.summary || "No event name";
   const eventStart = event.start.dateTime;
   const eventEnd = event.end.dateTime;
   const htmlLink = event.htmlLink || "No link provided";
-  console.log(event.extendedProperties.private);
+  log.info(event.extendedProperties.private);
   const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || event.attendees.filter((room) => room.resource === true)).map(
     (room) => room.email || "Unknown Room"
   );
   const recurrence = event.recurrence ? event.recurrence[0] : null;
 
-  console.log("extracted data:", userEmail, userName, eventName, eventStart, eventEnd, roomNames, htmlLink, recurrence);
+  log.info("extracted data:", userEmail, userName, eventName, eventStart, eventEnd, roomNames, htmlLink, recurrence);
   return { userEmail, userName, eventName, eventStart, eventEnd, roomNames, htmlLink, recurrence };
 };
 
@@ -112,7 +113,7 @@ function groupEventsByRoom(events) {
   const roomMap = new Map();
 
   events.forEach(event => {
-    console.log("Conflict Event found", event);
+    log.info("Conflict Event found", event);
     event.rooms.forEach(room => {
       if (!roomMap.has(room)) {
         roomMap.set(room, { room, times: [] });
@@ -148,10 +149,10 @@ async function getRoomNamesFromCalendarIds(busyRooms) {
 
     // Map the original order
     const roomNames = busyRooms.map(roomObj => idToNameMap[roomObj.room]).filter(Boolean);
-    console.log("(getRoomNamesFromCalendarIds) Room names:", roomNames);
+    log.info("(getRoomNamesFromCalendarIds) Room names:", roomNames);
     return roomNames;
   } catch (error) {
-    console.error("Error fetching room names:", error);
+    log.error("Error fetching room names:", error);
     throw error;
   }
 }
@@ -178,7 +179,7 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
     eventInstances = [...eventInstances, ...expandedInstances];
   }
 
-  console.log('>> Expanded event instances:', eventInstances);
+  log.info('>> Expanded event instances:', eventInstances);
 
   try {
     // If roomList is empty, fetch all possible rooms from the database
@@ -213,7 +214,7 @@ async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenc
     // Group conflicts by room
     return groupEventsByRoom(rows);
   } catch (error) {
-    console.error("Error checking conflicts:", error);
+    log.error("Error checking conflicts:", error);
     throw new Error("Failed to check for conflicts in the database.");
   }
 }
@@ -271,7 +272,7 @@ async function getAvailability(startDateTime, endDateTime, recurrenceRule) {
 
     return availableRoomNames;
   } catch (error) {
-    console.error("Error finding available rooms:", error);
+    log.error("Error finding available rooms:", error);
     throw error;
   }
 }
@@ -280,10 +281,10 @@ async function getAvailability(startDateTime, endDateTime, recurrenceRule) {
 async function generateRoomsAttendeesList(rooms) {
 
   if (detectRoomsFormat(rooms) === "objectArray") { // if the format is already objectArray, do nothing
-    console.log("Room list is already in objectArray format, no need to regenerate attendees.");
+    log.info("Room list is already in objectArray format, no need to regenerate attendees.");
     return rooms;
   } else if (detectRoomsFormat(rooms) === "stringArray") { // if the format is stringArray, convert to objectArray
-    console.log("Room list is in stringArray format, converting to objectArray.");
+    log.info("Room list is in stringArray format, converting to objectArray.");
 
     const roomAttendees = await Promise.all(
       rooms.map(async (room) => {
@@ -291,7 +292,7 @@ async function generateRoomsAttendeesList(rooms) {
         return { email: roomId, resource: true };
       })
     );
-    console.log(`roomAttendees Stringified: ${roomAttendees}`);
+    log.info(`roomAttendees Stringified: ${roomAttendees}`);
     return roomAttendees;
   } else {
     console.warn("Room list format is unrecognized, proceeding without changes.");
