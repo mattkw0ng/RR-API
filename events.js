@@ -499,6 +499,9 @@ async function getConflicts(room, start, end, id, calendar) {
 // Get all conflicts from a list of rooms and a start and end time
 async function getConflictsSimple(calendar, roomList, start, end) {
   log.info(`Checking conflicts from ${start} to ${end} for rooms:`, roomList);
+  if (roomList.length === 0) {
+    return [];
+  }
   const requestBody = {
     timeMin: start,
     timeMax: end,
@@ -575,8 +578,15 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
               roomResources = parsedRooms.map(r => {
                 // Use your mapping function to get room name from calendarId
                 log.info(`Mapping calendarId ${r.email} to room name`);
+                const room = roomsTools.GetRoomById(r.email);
+                if (!room) {
+                  log.warn(`No room found for calendarId ${r.email}`);
+                  return null;
+                }
+                log.info(`Found room name:`, room);
                 return roomsTools.GetRoomById(r.email).room_name;
               });
+              log.info(`Extracted room names:`, roomResources);
             }
           } else if (typeof parsedRooms[0] === 'string') {
             // Already array of room names
@@ -587,7 +597,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
           roomResources = [];
         }
       }
-      log.info(`Normalized room resources list: ${roomResources}`);
+      log.info(`Normalized room resources list:`, roomResources);
       // const roomResource = attendees?.find(attendee => attendee.resource === true);
 
       if (pendingEvent.recurrence) {
