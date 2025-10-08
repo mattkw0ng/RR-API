@@ -565,7 +565,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
       if (roomsStr) {
         try {
           const parsedRooms = JSON.parse(roomsStr);
-          log.info(`Parsed rooms field: ${parsedRooms}`);
+          log.info(`Parsed rooms field:`, parsedRooms);
           if (Array.isArray(parsedRooms)) {
             if (parsedRooms.length === 0) {
               roomResources = [];
