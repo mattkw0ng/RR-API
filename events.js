@@ -295,7 +295,7 @@ router.get('/numPendingEvents', async (req, res) => {
     const pendingCalendarEvents = pendingCalendar.data.items;
     const proposedCalendarEvents = proposedCalendar.data.items.filter((e) => e.extendedProperties?.private?.adminApproval === 'true');
 
-    log.info(pendingCalendarEvents, proposedCalendarEvents);
+    // log.info(pendingCalendarEvents, proposedCalendarEvents);
     const num = pendingCalendarEvents.length + proposedCalendarEvents.length;
 
     res.status(200).json(num);
@@ -574,18 +574,18 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
             if (parsedRooms.length === 0) {
               roomResources = [];
             } else if (parsedRooms[0].email) {
-              // Array of objects, extract room names from email
-              roomResources = parsedRooms.map(r => {
-                // Use your mapping function to get room name from calendarId
-                const room_name = roomsTools.GetRoomNameByCalendarId(r.email);
+              // If the parsed rooms are in the format [{email: calendarId, responseStatus: 'accepted'}, ...]
+              roomResources = await Promise.all(parsedRooms.map(async r => {
+                // map calendarId to room name
+                const room_name = await roomsTools.GetRoomNameByCalendarId(r.email);
                 log.info(`Mapped calendarId ${r.email} to room name: ${room_name}`);
                 return room_name;
-              });
+              }));
               log.info(`Extracted room names:`, roomResources);
             } else {
               roomResources = parsedRooms;
             }
-          } 
+          }
         } catch (e) {
           console.error('[pendingEventsWithConflicts] Error parsing rooms field:', e);
           roomResources = [];
