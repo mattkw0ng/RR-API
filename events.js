@@ -574,7 +574,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
               roomResources = parsedRooms.map(r => {
                 // Use your mapping function to get room name from calendarId
                 log.info(`Mapping calendarId ${r.email} to room name`);
-                return roomsTools.GetRoomNameByCalendarId(r.email);
+                return roomsTools.GetRoomById(r.email).room_name;
               });
             }
           } else if (typeof parsedRooms[0] === 'string') {
