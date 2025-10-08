@@ -582,7 +582,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
             roomResources = parsedRooms;
           }
         } catch (e) {
-          log.error('Error parsing roomsStr:', e);
+          console.error('[pendingEventsWithConflicts] Error parsing rooms field:', e);
           roomResources = [];
         }
       }
@@ -631,7 +631,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
 
     res.status(200).json(separatedEvents);
   } catch (error) {
-    log.error('Error fetching pending events:', error.message);
+    console.error('[pendingEventsWithConflicts] Error fetching pending events:', error.message);
     res.status(500).send('Error fetching pending events: ' + error.message);
   }
 });
