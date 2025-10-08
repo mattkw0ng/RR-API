@@ -498,11 +498,12 @@ async function getConflicts(room, start, end, id, calendar) {
 
 // Get all conflicts from a list of rooms and a start and end time
 async function getConflictsSimple(calendar, roomList, start, end) {
+  log.info(`Checking conflicts from ${start} to ${end} for rooms:`, roomList);
   const requestBody = {
     timeMin: start,
     timeMax: end,
     timeZone: 'America/Los_Angeles',
-    items: roomList.map((id) => ({ id })),
+    items: roomList.map((name) => ({ id: roomsTools.GetCalendarIdByRoom(name) })) // map room names to calendar IDs,
   }
 
   const response = await calendar.freebusy.query({ requestBody });
