@@ -21,7 +21,7 @@ function getCallerInfo() {
   }
   return { func: 'unknown', file: 'unknown', line: '?' };
 }
-
+ALTER TABLE activity_logs DROP CONSTRAINT activity_logs_user_id_fkey;
 /**
  * Logs a message at the specified level with optional indentation.
  * Accepts any number of arguments, objects are pretty-printed.
