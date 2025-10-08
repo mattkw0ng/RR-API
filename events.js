@@ -593,6 +593,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
       }
       log.info(`Normalized room resources list:`, roomResources);
       // const roomResource = attendees?.find(attendee => attendee.resource === true);
+      pendingEvent.extendedProperties.private.rooms = roomResources; // add the room resources to the event details for frontend use
 
       if (pendingEvent.recurrence) {
         // For recurring events, find all instances and check conflicts for each instance
