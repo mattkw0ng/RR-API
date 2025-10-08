@@ -577,8 +577,9 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
               // Array of objects, extract room names from email
               roomResources = parsedRooms.map(r => {
                 // Use your mapping function to get room name from calendarId
-                log.info(`Mapping calendarId ${r.email} to room name`);
-                return roomsTools.GetRoomNameByCalendarId(r.email);
+                const room_name = roomsTools.GetRoomNameByCalendarId(r.email);
+                log.info(`Mapped calendarId ${r.email} to room name: ${room_name}`);
+                return room_name;
               });
               log.info(`Extracted room names:`, roomResources);
             } else {

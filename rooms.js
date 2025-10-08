@@ -7,7 +7,6 @@ async function GetCalendarIdByRoom(room) {
   log.info("Getting calendar ID for room:", room);
   const query = 'SELECT calendar_id FROM rooms WHERE room_name = $1';
   const result = await pool.query(query, [room]);
-  log.info("Query result:", result);
   if (result.rows.length > 0) {
     return result.rows[0].calendar_id;
   }
@@ -35,9 +34,7 @@ async function GetRoomNameByCalendarId(roomId) {
   const result = await pool.query(
     `SELECT room_name FROM rooms WHERE calendar_id = $1`, [roomId]
   );
-  log.info("GetRoomNameByCalendarId result:", result);
   if (result.rows.length > 0) {
-    log.info("GetRoomNameByCalendarId result:", result.rows[0].room_name);
     return result.rows[0].room_name;
   } else {
     throw new Error(`No room found with calendar_id: ${roomId}`);
