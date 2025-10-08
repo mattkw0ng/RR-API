@@ -560,25 +560,25 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
       const { start, end, extendedProperties } = pendingEvent
       log.info('[pendingEventsWithConflicts] Printing Pending Event:', pendingEvent);
       const roomsStr = extendedProperties?.private?.rooms;
-      log.info(`roomsStr: ${roomsStr}`);
       // Normalize rooms field to always be array of room names
       let roomResources = [];
       if (roomsStr) {
         try {
           const parsedRooms = JSON.parse(roomsStr);
+          log.info(`Parsed rooms field: ${parsedRooms}`);
           if (Array.isArray(parsedRooms)) {
             if (parsedRooms.length === 0) {
               roomResources = [];
-            } else if (typeof parsedRooms[0] === 'string') {
-              // Already array of room names
-              roomResources = parsedRooms;
-            } else if (typeof parsedRooms[0] === 'object' && parsedRooms[0].email) {
+            } else if (parsedRooms[0].email) {
               // Array of objects, extract room names from email
               roomResources = parsedRooms.map(r => {
                 // Use your mapping function to get room name from calendarId
-                return roomsTools.GetRoomNameByCalendarId ? roomsTools.GetRoomNameByCalendarId(r.email) : r.email;
+                return roomsTools.GetRoomNameByCalendarId(r.email);
               });
             }
+          } else if (typeof parsedRooms[0] === 'string') {
+            // Already array of room names
+            roomResources = parsedRooms;
           }
         } catch (e) {
           log.error('Error parsing roomsStr:', e);
