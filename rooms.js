@@ -30,10 +30,23 @@ async function GetRoomByName(roomName) {
   return(result.rows[0]);
 }
 
+async function GetRoomNameByCalendarId(roomId) {
+  const result = await pool.query(
+    `SELECT room_name FROM rooms WHERE calendar_id = $1`, [roomId]
+  );
+  if (result.rows.length > 0) {
+    log.info("GetRoomNameByCalendarId result:", result.rows[0].room_name);
+    return result.rows[0].room_name;
+  } else {
+    throw new Error(`No room found with calendar_id: ${roomId}`);
+  }
+}
+
 async function GetRoomById(roomId) {
   const result = await pool.query(
     `SELECT * FROM rooms WHERE calendar_id = $1`, [roomId]
   );
+  log.info("GetRoomById result:", result.rows[0]);
   return(result.rows[0])
 }
 
@@ -152,4 +165,5 @@ module.exports = {
   GetRoomById,
   GetAllRooms,
   GetCalendarIdByRoom,
+  GetRoomNameByCalendarId,
 };
