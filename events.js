@@ -414,6 +414,8 @@ async function getEventsOnDay(auth, time, availableRooms) {
     log.info("Mapping events for room:", room.name, "with targetId:", room.id);
     // Filter all events by mapping attendees list into list of emails and searching for targetId within this list
     return [room.name, {
+      room_name: room.name,
+      room_id: room.id,
       approvedEvents: approvedCalendarEvents.filter((element) => element.attendees.map((e) => e.email).includes(room.id)),
       pendingEvents: pendingCalendarEvents.filter((element) => element.attendees.map((e) => e.email).includes(room.id))
     }]
@@ -496,24 +498,25 @@ async function getAvailableRoomsAlt(auth, timeMin, timeMax, roomList) {
 
 /**
  * Function to add relaevant room details to the allEventsOnDay object @see getEventsOnDay
- * @param {*} availableRoomsEvents list of room names with their events [roomName: {approvedEvents: [], pendingEvents: []}]
- * @returns allEvents with an additional 'details' field for each room (taken from the database)
+ * @param {*} availableRoomsEvents list of room names with their events {roomName: {room_name, roomId, approvedEvents: [], pendingEvents: []}}
+ * @returns allEvents with an additional 'details' field for each room (taken from the database){roomName: {room_name, roomId, approvedEvents: [], pendingEvents: [], details: {capacity: Number, resources: Array} }}
  */
 async function mapToRoomDetails(availableRoomsEvents) {
   log.info("Getting Room Details");
   const allRoomsDetails = await roomsTools.GetAllRooms();
   log.info("All Rooms Details:", allRoomsDetails);
+  log.info("Available Rooms Events before adding details:", availableRoomsEvents);
   // iterate through allEvents and add capacity and resources field by matching room name with allRoomsDetails
-  for (const roomName in availableRoomsEvents) {
-    const roomDetails = allRoomsDetails.find((room) => room.room_name === roomName);
+  for (const room in availableRoomsEvents) {
+    const roomDetails = allRoomsDetails.find((r) => r.room_name === room.room_name);
     if (roomDetails) {
-      availableRoomsEvents[roomName]['details'] = {
+      room.details = {
         capacity: roomDetails.capacity,
         resources: roomDetails.resources,
         calendar_id: roomDetails.calendar_id
       }
     } else {
-      availableRoomsEvents[roomName]['details'] = {
+      room.details = {
         capacity: 'Unknown',
         resources: [],
         calendar_id: 'Unknown'
