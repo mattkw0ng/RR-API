@@ -414,7 +414,8 @@ async function getEventsOnDay(auth, time, availableRooms) {
       pendingEvents: pendingEvents.filter((element) => element.attendees.map((e) => e.email).includes(targetId))
     }]
   }))
-
+  
+  log.info(">> All Events on Day Mapped to Rooms:", merged);
   return merged;
 }
 
