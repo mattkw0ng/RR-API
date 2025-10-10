@@ -381,6 +381,10 @@ router.get('/getEventsByRoom', async (req, res) => {
 
 /**
  * Get All Events on a single day, and map them to the given list of available Rooms @see /getAvailableRooms 
+ * @param {*} auth 
+ * @param {*} time 
+ * @param {*} availableRooms list objects {name: String, id: String}
+ * @returns dictionary of roomName: {approvedEvents: [], pendingEvents: []}
  */
 async function getEventsOnDay(auth, time, availableRooms) {
   const calendar = google.calendar({ version: "v3", auth });
@@ -388,7 +392,7 @@ async function getEventsOnDay(auth, time, availableRooms) {
   const timeMin = new Date(targetDate.setHours(0, 0, 0, 0)).toISOString(); // Start of the day
   const timeMax = new Date(targetDate.setHours(23, 59, 59, 999)).toISOString(); // End of the day
 
-  const response = await calendar.events.list({
+  const approvedCalendarResponse = await calendar.events.list({
     calendarId: APPROVED_CALENDAR_ID,
     singleEvents: true,
     orderBy: 'startTime',
@@ -396,7 +400,7 @@ async function getEventsOnDay(auth, time, availableRooms) {
     timeMax: timeMax
   });
 
-  const pendingResponse = await calendar.events.list({
+  const pendingCalendarResponse = await calendar.events.list({
     calendarId: PENDING_APPROVAL_CALENDAR_ID,
     singleEvents: true,
     orderBy: 'startTime',
@@ -404,17 +408,17 @@ async function getEventsOnDay(auth, time, availableRooms) {
     timeMax: timeMax
   });
 
-  const allEvents = response.data.items;
-  const pendingEvents = pendingResponse.data.items;
-  const merged = Object.fromEntries(availableRooms.map((roomName) => {
-    const targetId = roomsTools.GetCalendarIdByRoom(roomName);
+  const approvedCalendarEvents = approvedCalendarResponse.data.items;
+  const pendingCalendarEvents = pendingCalendarResponse.data.items;
+  const merged = Object.fromEntries(availableRooms.map((room) => {
+    log.info("Mapping events for room:", room.name, "with targetId:", room.id);
     // Filter all events by mapping attendees list into list of emails and searching for targetId within this list
-    return [roomName, {
-      approvedEvents: allEvents.filter((element) => element.attendees.map((e) => e.email).includes(targetId)),
-      pendingEvents: pendingEvents.filter((element) => element.attendees.map((e) => e.email).includes(targetId))
+    return [room.name, {
+      approvedEvents: approvedCalendarEvents.filter((element) => element.attendees.map((e) => e.email).includes(room.id)),
+      pendingEvents: pendingCalendarEvents.filter((element) => element.attendees.map((e) => e.email).includes(room.id))
     }]
   }))
-  
+
   log.info(">> All Events on Day Mapped to Rooms:", merged);
   return merged;
 }
@@ -460,7 +464,7 @@ async function getAvailableRooms(auth, timeMin, timeMax, roomList) {
  * @param {*} timeMin 
  * @param {*} timeMax 
  * @param {*} roomList list of roomIds to exclude
- * @returns 
+ * @returns list of objects {name: String, id: String} of available rooms
  */
 
 async function getAvailableRoomsAlt(auth, timeMin, timeMax, roomList) {
@@ -484,9 +488,10 @@ async function getAvailableRoomsAlt(auth, timeMin, timeMax, roomList) {
   const rooms = await roomsTools.GetAllRooms();
   const availableRoomIds = rooms.map((room) => room.calendar_id).filter((id) => !roomList.includes(id) || !busyRooms.includes(id)); // Exclude rooms in roomList
 
-  const availableRoomNames = rooms.filter((room) => availableRoomIds.includes(room.calendar_id)).map((room) => room.room_name);
-  log.info("Available Rooms:", availableRoomNames);
-  return availableRoomNames;
+  // Map available room IDs to object with room name and calendar Id pair
+  const availableRoomsDict = rooms.filter((room) => availableRoomIds.includes(room.calendar_id)).map((room) => ({ name: room.room_name, id: room.calendar_id }));
+  log.info("Available Rooms:", availableRoomsDict);
+  return availableRoomsDict;
 }
 
 async function mapToRoomDetails(availableRooms, allEvents) {
