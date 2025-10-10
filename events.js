@@ -419,7 +419,7 @@ async function getEventsOnDay(auth, time, availableRooms) {
     }]
   }))
 
-  log.info(">> All Events on Day Mapped to Rooms:", merged);
+  // log.info(">> All Events on Day Mapped to Rooms:", merged); // Too verbose -- used for debugging
   return merged;
 }
 
@@ -494,14 +494,35 @@ async function getAvailableRoomsAlt(auth, timeMin, timeMax, roomList) {
   return availableRoomsDict;
 }
 
-async function mapToRoomDetails(availableRooms, allEvents) {
+/**
+ * Function to add relaevant room details to the allEventsOnDay object @see getEventsOnDay
+ * @param {*} availableRoomsEvents list of room names with their events [roomName: {approvedEvents: [], pendingEvents: []}]
+ * @returns allEvents with an additional 'details' field for each room (taken from the database)
+ */
+async function mapToRoomDetails(availableRoomsEvents) {
   log.info("Getting Room Details");
-  for (room of availableRooms) {
-    const res = await roomsTools.GetRoomDetails(room);
-    allEvents[room].details = res;
+  const allRoomsDetails = await roomsTools.GetAllRooms();
+  log.info("All Rooms Details:", allRoomsDetails);
+  // iterate through allEvents and add capacity and resources field by matching room name with allRoomsDetails
+  for (const roomName in availableRoomsEvents) {
+    const roomDetails = allRoomsDetails.find((room) => room.room_name === roomName);
+    if (roomDetails) {
+      availableRoomsEvents[roomName]['details'] = {
+        capacity: roomDetails.capacity,
+        resources: roomDetails.resources,
+        calendar_id: roomDetails.calendar_id
+      }
+    } else {
+      availableRoomsEvents[roomName]['details'] = {
+        capacity: 'Unknown',
+        resources: [],
+        calendar_id: 'Unknown'
+      }
+    }
   }
-  log.info("Available Rooms: ", allEvents);
-  return allEvents
+
+  log.info("AvailableRoomsWithDetails", availableRoomsEvents);
+  return availableRoomsEvents
 }
 
 /**
@@ -516,7 +537,7 @@ router.get('/getAvailableRooms', async (req, res) => {
     const availableRooms = await getAvailableRoomsAlt(auth, timeMin, timeMax, excludeRooms);
     const allEventsOnDay = await getEventsOnDay(auth, timeMin, availableRooms);
     const allEventsWithRoomDetails = await mapToRoomDetails(availableRooms, allEventsOnDay);
-    // log.info(allEventsWithRoomDetails);
+
     res.status(200).json(allEventsWithRoomDetails);
   } catch (error) {
     console.error(`Error fetching available rooms for time: ${timeMin} - ${timeMax}:`, error.message);
