@@ -502,11 +502,18 @@ async function getConflictsSimple(calendar, roomList, start, end) {
   if (roomList.length === 0) {
     return [];
   }
+  const calendarIds = await Promise.all(roomList.map(async (name) => {
+    const calId = await roomsTools.GetCalendarIdByRoom(name);
+    log.info(`Mapped room name ${name} to calendar ID: ${calId}`);
+    return { id: calId };
+  }));
+  log.info('Mapped room names to calendar IDs:', calendarIds);
+
   const requestBody = {
     timeMin: start,
     timeMax: end,
     timeZone: 'America/Los_Angeles',
-    items: roomList.map((name) => ({ id: roomsTools.GetCalendarIdByRoom(name) })) // map room names to calendar IDs,
+    items: calendarIds // map room names to calendar IDs,
   }
 
   const response = await calendar.freebusy.query({ requestBody });
