@@ -536,7 +536,7 @@ router.get('/getAvailableRooms', async (req, res) => {
   try {
     const availableRooms = await getAvailableRoomsAlt(auth, timeMin, timeMax, excludeRooms);
     const allEventsOnDay = await getEventsOnDay(auth, timeMin, availableRooms);
-    const allEventsWithRoomDetails = await mapToRoomDetails(availableRooms, allEventsOnDay);
+    const allEventsWithRoomDetails = await mapToRoomDetails(allEventsOnDay);
 
     res.status(200).json(allEventsWithRoomDetails);
   } catch (error) {
