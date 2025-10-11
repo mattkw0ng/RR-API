@@ -370,7 +370,7 @@ router.get('/getEventsByRoom', async (req, res) => {
     const approvedEvents = response.data.items || [];
     // filter pending events by room
     log.info(pendingResponse)
-    const pendingEvents = pendingResponse.data.items.filter((e) => JSON.parse(e.extendedProperties.private.rooms).find((l) => l.email === roomId))
+    const pendingEvents = pendingResponse.data.items.filter((e) => JSON.parse(e.extendedProperties.private.rooms).find((l) => l.email === roomId)) // need to add flex for multiple rooms and for when provate.rooms is roomNames instead of roomIds
     res.status(200).json([approvedEvents, pendingEvents]);
   } catch (error) {
     console.error(`Error fetching events for room "${room}":`, error.message);
@@ -641,24 +641,7 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
       let roomResources = [];
       if (roomsStr) {
         try {
-          const parsedRooms = JSON.parse(roomsStr);
-          log.info(`Parsed rooms field:`, parsedRooms);
-          if (Array.isArray(parsedRooms)) {
-            if (parsedRooms.length === 0) {
-              roomResources = [];
-            } else if (parsedRooms[0].email) {
-              // If the parsed rooms are in the format [{email: calendarId, responseStatus: 'accepted'}, ...]
-              roomResources = await Promise.all(parsedRooms.map(async r => {
-                // map calendarId to room name
-                const room_name = await roomsTools.GetRoomNameByCalendarId(r.email);
-                log.info(`Mapped calendarId ${r.email} to room name: ${room_name}`);
-                return room_name;
-              }));
-              log.info(`Extracted room names:`, roomResources);
-            } else {
-              roomResources = parsedRooms;
-            }
-          }
+          roomResources = await roomsTools.NormalizeRoomList(roomsStr);
         } catch (e) {
           console.error('[pendingEventsWithConflicts] Error parsing rooms field:', e);
           roomResources = [];
@@ -1011,7 +994,7 @@ router.post('/partiallyApproveRecurringEvent', async (req, res) => {
 
     // 8. Send partial approval email for the approved part, including conflicts
     const { sendReservationPartiallyApprovedEmail } = require('./utils/sendEmail');
-    const emailDetails = extractEventDetailsForEmail(updatedEvent.data);
+    const emailDetails = await extractEventDetailsForEmail(updatedEvent.data);
     sendReservationPartiallyApprovedEmail(
       emailDetails.userEmail,
       emailDetails.userName,
@@ -1051,7 +1034,7 @@ router.post('/approveEvent', async (req, res) => {
     // Retrieve the event details from the "Pending approval" calendar
     const data = await moveAndUpdateEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID);
 
-    const emailDetails = extractEventDetailsForEmail(data);
+    const emailDetails = await extractEventDetailsForEmail(data);
     sendReservationApprovedEmail(
       emailDetails.userEmail,
       emailDetails.userName,
@@ -1087,7 +1070,7 @@ router.post('/quickApprove', async (req, res) => {
     for (eventId of eventIdList) {
       const data = await moveAndUpdateEvent(eventId, calendar, PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID);
 
-      const emailDetails = extractEventDetailsForEmail(data);
+      const emailDetails = await extractEventDetailsForEmail(data);
 
       sendReservationApprovedEmail(
         emailDetails.userEmail,
@@ -1183,7 +1166,7 @@ router.post('/editEvent', async (req, res) => {
         requestBody: event,
       });
 
-      const emailDetails = extractEventDetailsForEmail(updatedEvent.data);
+      const emailDetails = await extractEventDetailsForEmail(updatedEvent.data);
       sendReservationEditedEmail(
         emailDetails.userEmail,
         emailDetails.userName,

@@ -20,14 +20,14 @@ async function SearchRoom(capacity, resources) {
     [capacity, resources]
   );
   // log.info(result);
-  return(result.rows);
+  return (result.rows);
 }
 
 async function GetRoomByName(roomName) {
   const result = await pool.query(
     `SELECT * FROM rooms WHERE room_name = $1`, [roomName]
   );
-  return(result.rows[0]);
+  return (result.rows[0]);
 }
 
 async function GetRoomNameByCalendarId(roomId) {
@@ -46,14 +46,54 @@ async function GetRoomById(roomId) {
     `SELECT * FROM rooms WHERE calendar_id = $1`, [roomId]
   );
   log.info("GetRoomById result:", result.rows[0]);
-  return(result.rows[0])
+  return (result.rows[0])
 }
 
 async function GetAllRooms() {
   const result = await pool.query(
     `SELECT * FROM rooms`
   );
-  return(result.rows);
+  return (result.rows);
+}
+
+/**
+ * Takes a list of room names and/or calendar IDs and returns a normalized list of room names only (for pending events)
+ * @param {*} roomStr array(stringified) of room names and/or calendar IDs {"Room A", "Room B", "} or {email: calendarId, responseStatus: 'accepted'}
+ * @returns normalized list of room names only ["Room A", "Room B"]
+ */
+async function NormalizeRoomList(roomsStr) {
+  // roomList can be a mix of room names and calendar IDs
+  // Normalize rooms field to always be array of room names
+  let roomResources = [];
+  if (roomsStr) {
+    try {
+      const parsedRooms = JSON.parse(roomsStr);
+      log.info(`Parsed rooms field:`, parsedRooms);
+      if (Array.isArray(parsedRooms)) {
+        if (parsedRooms.length === 0) {
+          roomResources = [];
+        } else if (parsedRooms[0].email) {
+          // If the parsed rooms are in the format [{email: calendarId, responseStatus: 'accepted'}, ...]
+          roomResources = await Promise.all(parsedRooms.filter((attendee) => {
+            return attendee?.resource === true; // only include room resources
+          }).map(async r => {
+            // map calendarId to room name
+            const room_name = await GetRoomNameByCalendarId(r.email);
+            log.info(`Mapped calendarId ${r.email} to room name: ${room_name}`);
+            return room_name;
+          }));
+          log.info(`Extracted room names:`, roomResources);
+        } else {
+          roomResources = parsedRooms;
+        }
+      }
+    } catch (e) {
+      console.error('[NormalizeRoomList| rooms.js:90] Error parsing rooms field:', e);
+      roomResources = [];
+    }
+  }
+  log.info(`Normalized room resources list:`, roomResources);
+  return roomResources;
 }
 
 // TEST : get room data from database
@@ -76,7 +116,7 @@ router.get('/rooms', async (req, res) => {
     const rooms = {};
     const roomsGrouped = {};
     const roomListSimple = [];
-    
+
     result.rows.forEach((room) => {
       rooms[room.room_name] = {
         resources: room.resources ? room.resources : [],
@@ -114,7 +154,7 @@ router.post('/searchRoomBasic', async (req, res) => {
   } else {
     res.status(500).send('Server Error')
   }
-  
+
 
   try {
     const result = await SearchRoom(capacity, resources);
@@ -131,29 +171,29 @@ router.post('/addRoom', async (req, res) => {
 
   // Basic Validation
   if (!room_name || !calendar_id || !building_location) {
-    return res.status(400).json({error: "Missing required fields (room name, calendar id, or building location"});
+    return res.status(400).json({ error: "Missing required fields (room name, calendar id, or building location" });
   }
 
   if (!Array.isArray(resources)) {
-    return res.status(400).json({error: "The 'resources' field must be an array of strings"});
+    return res.status(400).json({ error: "The 'resources' field must be an array of strings" });
   }
 
   if (!calendar_id.endsWith('@resource.calendar.google.com')) {
-    return res.status(400).json({error: "Invalid calendar_id format"});
+    return res.status(400).json({ error: "Invalid calendar_id format" });
   }
 
   try {
-    const insertQuery =`
+    const insertQuery = `
       INSERT INTO rooms (room_name, calendar_id, capacity, resources, building_location)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
     const values = [room_name, calendar_id, capacity || 15, resources, building_location]; // capacity will default to 15 if it is left null
     const result = await pool.query(insertQuery, values);
-    res.status(201).json({message: "Room added successfully", room: result.rows[0] });
+    res.status(201).json({ message: "Room added successfully", room: result.rows[0] });
   } catch (error) {
     log.error("Error adding room", error);
-    res.status(500).json({ error: "Internal server error"});
+    res.status(500).json({ error: "Internal server error" });
   }
 })
 
@@ -165,4 +205,5 @@ module.exports = {
   GetAllRooms,
   GetCalendarIdByRoom,
   GetRoomNameByCalendarId,
+  NormalizeRoomList
 };

@@ -50,7 +50,7 @@ const getNumPendingEvents = async () => {
  * @param {Object} event - The new event
  * @returns {Object} Contains userEmail, userName, eventName, eventStart, eventEnd, roomNames 
  */
-const extractEventDetailsForEmail = (event) => {
+const extractEventDetailsForEmail = async (event) => {
   if (!event) {
     throw new Error("Invalid event object");
   }
@@ -64,9 +64,11 @@ const extractEventDetailsForEmail = (event) => {
   const eventEnd = event.end.dateTime;
   const htmlLink = event.htmlLink || "No link provided";
   log.info(event.extendedProperties.private);
-  const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || event.attendees.filter((room) => room.resource === true)).map(
-    (room) => room.email || "Unknown Room"
-  );
+  // const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || event.attendees.filter((room) => room.resource === true)).map(
+  //   (room) => room.email || "Unknown Room"
+  // );
+  const roomNames = await roomsTools.NormalizeRoomList(event.extendedProperties?.private?.rooms);
+  log.info("Extracted room names:", roomNames);
   const recurrence = event.recurrence ? event.recurrence[0] : null;
 
   log.info("extracted data:", userEmail, userName, eventName, eventStart, eventEnd, roomNames, htmlLink, recurrence);
