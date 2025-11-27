@@ -568,6 +568,9 @@ async function getConflictsSimple(calendar, roomList, start, end) {
   if (roomList.length === 0) {
     return [];
   }
+  if (roomList[0]?.email === "") {
+    return [];
+  }
   const calendarIds = await Promise.all(roomList.map(async (name) => {
     const calId = await roomsTools.GetCalendarIdByRoom(name);
     log.info(`Mapped room name ${name} to calendar ID: ${calId}`);
