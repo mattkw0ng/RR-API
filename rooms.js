@@ -201,7 +201,7 @@ router.post('/addRoom', async (req, res) => {
  * Get Activity Logs from Admin
  */
 router.get("/admin/activity-logs", async (req, res) => {
-  const result = await db.query(`
+  const result = await pool.query(`
     SELECT *
     FROM activity_logs
     ORDER BY id DESC
