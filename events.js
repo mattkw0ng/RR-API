@@ -1349,7 +1349,7 @@ router.delete('/rejectEvent', async (req, res) => {
     const calendar = google.calendar({ version: 'v3', auth });
 
     await calendar.events.delete({
-      calendarId: calendarId, // Pending Calendar ID
+      calendarId: calendarId === 'pending' ? PENDING_APPROVAL_CALENDAR_ID : calendarId, // Pending Calendar ID
       eventId: eventId, // Event ID
     });
 
