@@ -44,7 +44,7 @@ const sendEmail = async (toEmail, subject, text, html) => {
 /**
  * Notify user their room reservation request has been received.
  */
-const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, htmlLink) => {
+const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, htmlLink, eventIsRecurring) => {
   const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
   const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
 
@@ -53,7 +53,7 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
 
   await sendEmail(
     userEmail,
-    'Your Room Reservation Request has been Received',
+    `Your ${eventIsRecurring ? '[Recurring]' : ''} Room Reservation Request has been Received`,
     'Your room reservation request has been received. You will be notified upon further updates.',
     `
       <p>Dear ${userName},</p>
