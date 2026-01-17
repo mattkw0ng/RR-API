@@ -2,6 +2,7 @@ const nodemailer = require('nodemailer');
 const { getNumPendingEvents } = require('./event-utils');
 const { DateTime } = require('luxon');
 require('dotenv').config();
+const log = require('./log');
 
 // Configure Nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -44,61 +45,17 @@ const sendEmail = async (toEmail, subject, text, html) => {
 /**
  * Notify user their room reservation request has been received.
  */
-// Helpers: normalize date inputs and room name lists to avoid runtime exceptions (e.g., recurring events)
-function _toDateTime(input) {
-  if (!input) return null;
-  try {
-    if (typeof input === 'string') {
-      const dt = DateTime.fromISO(input, { zone: 'America/Los_Angeles' });
-      if (dt.isValid) return dt;
-      // try parsing as JS date string
-      const jsd = new Date(input);
-      if (!isNaN(jsd.getTime())) return DateTime.fromJSDate(jsd, { zone: 'America/Los_Angeles' });
-      return null;
-    }
-    if (input instanceof Date) return DateTime.fromJSDate(input, { zone: 'America/Los_Angeles' });
-    // If input is an object with dateTime property (Google event instance)
-    if (input.dateTime) return DateTime.fromISO(input.dateTime, { zone: 'America/Los_Angeles' });
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-function _normalizeRoomNames(roomNames) {
-  if (!roomNames) return ['Unknown'];
-  // If stringified JSON was passed accidentally
-  if (typeof roomNames === 'string') {
-    try {
-      const parsed = JSON.parse(roomNames);
-      return _normalizeRoomNames(parsed);
-    } catch (e) {
-      return [roomNames];
-    }
-  }
-  if (Array.isArray(roomNames)) {
-    // if array of objects, try common fields
-    if (roomNames.length > 0 && typeof roomNames[0] === 'object') {
-      return roomNames.map(r => r.displayName || r.room_name || r.name || r.email || String(r)).filter(Boolean);
-    }
-    return roomNames.map(String);
-  }
-  // Fallback
-  return [String(roomNames)];
-}
-
 const sendReservationReceivedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, htmlLink, eventIsRecurring) => {
-  const startTime = _toDateTime(eventDateTimeStart);
-  const endTime = _toDateTime(eventDateTimeEnd);
+  log.info("Preparing to Send Email. IsRecurring: ", eventIsRecurring);
+  const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
+  const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
 
-  const eventDate = startTime ? startTime.toLocaleString(DateTime.DATE_FULL) : 'TBD';
-  const eventTime = startTime && endTime ? `${startTime.toLocaleString(DateTime.TIME_SIMPLE)} - ${endTime.toLocaleString(DateTime.TIME_SIMPLE)}` : 'TBD';
-
-  const roomsList = _normalizeRoomNames(roomNames).join(', ');
-
+  const eventDate = startTime.toLocaleString(DateTime.DATE_FULL); // e.g., "Monday, January 15, 2025"
+  const eventTime = `${startTime.toLocaleString(DateTime.TIME_SIMPLE)} - ${endTime.toLocaleString(DateTime.TIME_SIMPLE)}`;
+  log.info("Sending email...");
   await sendEmail(
     userEmail,
-    `Your ${eventIsRecurring ? '[Recurring] ' : ''}Room Reservation Request has been Received`,
+    `Your ${eventIsRecurring ? '[Recurring]' : ''} Room Reservation Request has been Received`,
     'Your room reservation request has been received. You will be notified upon further updates.',
     `
       <p>Dear ${userName},</p>
@@ -107,7 +64,7 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
       <ul>
         <li><strong>Date:</strong> ${eventDate}</li>
         <li><strong>Time:</strong> ${eventTime}</li>
-        <li><strong>Room(s):</strong> ${roomsList}</li>
+        <li><strong>Room(s):</strong> ${roomNames.join(', ')}</li>
       </ul>
       <p>You will be notified via email when your reservation is approved. You can check real time status <a href='https://rooms.sjcac.org/profile'>here on the profile page</a>.</p>
       <small>Note: You may recieve an email titled 'Invitation from an unknown sender:'. Do not be alarmed, this is an automated message from Google notifying you that you have been added as an attendee to this calendar event. Either disregard this email or click accept to add a copy of this event any future events to your personal calendar.</small>
@@ -120,13 +77,12 @@ const sendReservationReceivedEmail = async (userEmail, userName, eventName, even
 /**
  * Notify user their room reservation request has been approved.
  */
-const sendReservationApprovedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, message = "", htmlLink) => {
-  const startTime = _toDateTime(eventDateTimeStart);
-  const endTime = _toDateTime(eventDateTimeEnd);
+const sendReservationApprovedEmail = async (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, roomNames, message="", htmlLink) => {
+  const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
+  const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
 
-  const eventDate = startTime ? startTime.toLocaleString(DateTime.DATE_FULL) : 'TBD';
-  const eventTime = startTime && endTime ? `${startTime.toLocaleString(DateTime.TIME_SIMPLE)} - ${endTime.toLocaleString(DateTime.TIME_SIMPLE)}` : 'TBD';
-  const roomsList = _normalizeRoomNames(roomNames).join(', ');
+  const eventDate = startTime.toLocaleString(DateTime.DATE_FULL); // e.g., "Monday, January 15, 2025"
+  const eventTime = `${startTime.toLocaleString(DateTime.TIME_SIMPLE)} - ${endTime.toLocaleString(DateTime.TIME_SIMPLE)}`;
 
   await sendEmail(
     userEmail,
@@ -139,7 +95,7 @@ const sendReservationApprovedEmail = async (userEmail, userName, eventName, even
       <ul>
         <li><strong>Date:</strong> ${eventDate}</li>
         <li><strong>Time:</strong> ${eventTime}</li>
-        <li><strong>Room(s):</strong> ${roomsList}</li>
+        <li><strong>Room(s):</strong> ${roomNames.join(', ')}</li>
       </ul>
 
       ${message ? `<p><strong>Message from the admin:</strong> ${message}</p>` : ''}
@@ -194,12 +150,12 @@ const sendReservationCanceledEmail = async (userEmail, userName, eventName) => {
  * Notify user their room reservation request has been edited (Fire-and-forget).
  */
 const sendReservationEditedEmail = (userEmail, userName, eventName, eventDateTimeStart, eventDateTimeEnd, updatedRoomNames, htmlLink) => {
-  const startTime = _toDateTime(eventDateTimeStart);
-  const endTime = _toDateTime(eventDateTimeEnd);
 
-  const eventDate = startTime ? startTime.toLocaleString(DateTime.DATE_FULL) : 'TBD';
-  const eventTime = startTime && endTime ? `${startTime.toLocaleString(DateTime.TIME_SIMPLE)} - ${endTime.toLocaleString(DateTime.TIME_SIMPLE)}` : 'TBD';
-  const roomsList = _normalizeRoomNames(updatedRoomNames).join(', ');
+  const startTime = DateTime.fromISO(eventDateTimeStart, { zone: 'America/Los_Angeles' });
+  const endTime = DateTime.fromISO(eventDateTimeEnd, { zone: 'America/Los_Angeles' });
+
+  const eventDate = startTime.toLocaleString(DateTime.DATE_FULL); // e.g., "Monday, January 15, 2025"
+  const eventTime = `${startTime.toLocaleString(DateTime.TIME_SIMPLE)} - ${endTime.toLocaleString(DateTime.TIME_SIMPLE)}`;
 
   // Return a Promise to handle the email asynchronously
   return new Promise((resolve, reject) => {
@@ -214,7 +170,7 @@ const sendReservationEditedEmail = (userEmail, userName, eventName, eventDateTim
         <ul>
           <li><strong>Date:</strong> ${eventDate}</li>
           <li><strong>Time:</strong> ${eventTime}</li>
-          <li><strong>Room(s):</strong> ${roomsList}</li>
+          <li><strong>Room(s):</strong> ${updatedRoomNames.join(', ')}</li>
         </ul>
         <p>If you did not request this change, please contact us immediately.</p>
         <p>Thank you,</p>
@@ -245,30 +201,24 @@ const notifyAdminsOfNewRequest = async (newEvent) => {
     const admin_emails = ['matt.kwong@sjcac.org', 'audrey.kwong@sjcac.org']; // Replace with actual admin emails
 
     // Extract details of the new event
-    let roomsList = 'Unknown';
-    try {
-      const parsedRooms = JSON.parse(newEvent.extendedProperties?.private?.rooms || '[]');
-      roomsList = Array.isArray(parsedRooms) ? parsedRooms.map(r => r.displayName || r.room_name || r.name || r).join(', ') : String(parsedRooms);
-    } catch (e) {
-      roomsList = String(newEvent.extendedProperties?.private?.rooms || 'Unknown');
-    }
-
     const eventDetails = `
       <p><strong>Event Name:</strong> ${newEvent.summary}</p>
-      <p><strong>Date:</strong> ${newEvent.start?.dateTime ? new Date(newEvent.start.dateTime).toLocaleDateString('en-US', {
+      <p><strong>Date:</strong> ${new Date(newEvent.start.dateTime).toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
-      }) : 'TBD'}</p>
-      <p><strong>Time:</strong> ${newEvent.start?.dateTime ? new Date(newEvent.start.dateTime).toLocaleTimeString([], {
+      })}</p>
+      <p><strong>Time:</strong> ${new Date(newEvent.start.dateTime).toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
-      }) : 'TBD'} - ${newEvent.end?.dateTime ? new Date(newEvent.end.dateTime).toLocaleTimeString([], {
+      })} - ${new Date(newEvent.end.dateTime).toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
-      }) : 'TBD'}</p>
-      <p><strong>Rooms:</strong> ${roomsList}</p>
+      })}</p>
+      <p><strong>Rooms:</strong> ${JSON.parse(newEvent.extendedProperties.private.rooms)
+        .map((room) => room.displayName)
+        .join(', ')}</p>
       <p><strong>Description:</strong> ${newEvent.description || 'No description provided'}</p>
     `;
 

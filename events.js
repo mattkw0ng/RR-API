@@ -133,14 +133,14 @@ router.get('/userEvents', async (req, res) => {
     const proposedEvents = await getUserEvents(calendar, PROPOSED_CHANGES_CALENDAR_ID, userEmail, false);
     const pastEvents = await getUserEvents(calendar, APPROVED_CALENDAR_ID, userEmail, true);
 
-    log.info(">> (getUserEvents) pendingEvents", pendingEvents);
-    log.info(">> (getUserEvents) approvedEvents", approvedEvents);
-    log.info(">> (getUserEvents) proposedEvents", proposedEvents);
-    log.info(">> (getUserEvents) pastEvents", pastEvents);
+    // log.info(">> (getUserEvents) pendingEvents", pendingEvents);
+    // log.info(">> (getUserEvents) approvedEvents", approvedEvents);
+    // log.info(">> (getUserEvents) proposedEvents", proposedEvents);
+    // log.info(">> (getUserEvents) pastEvents", pastEvents);
 
     // Combine all events into a single object
     const result = { 'pending': pendingEvents, 'approved': approvedEvents, 'proposed': proposedEvents, 'history': pastEvents };
-    log.info(">> (getUserEvents) result", result);
+    // log.info(">> (getUserEvents) result", result);
 
     res.status(200).json(result);
   } catch (error) {
