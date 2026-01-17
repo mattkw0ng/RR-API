@@ -197,6 +197,20 @@ router.post('/addRoom', async (req, res) => {
   }
 })
 
+/**
+ * Get Activity Logs from Admin
+ */
+router.get("/admin/activity-logs", async (req, res) => {
+  const result = await db.query(`
+    SELECT *
+    FROM activity_logs
+    ORDER BY id DESC
+    LIMIT 50
+  `);
+
+  res.json(result.rows);
+});
+
 module.exports = {
   router,
   SearchRoom,
