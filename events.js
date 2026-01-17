@@ -821,7 +821,7 @@ router.post('/addEventWithRooms', async (req, res) => {
 
     } else {
       // Send confirmation email (non-blocking)
-      sendReservationReceivedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms, response.data.htmlLink, eventIsRecurring)
+      sendReservationReceivedEmail(userEmail, userName, summary, startDateTime, endDateTime, rooms, response.data.htmlLink, eventIsRecurring, rRule)
         .then(() => log.info('Email sent'))
         .catch((emailError) => console.error('Error sending email:', emailError));
     }
