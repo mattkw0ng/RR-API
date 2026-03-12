@@ -1357,7 +1357,7 @@ router.post('/query', async (req, res) => {
   const queryParams = Array.isArray(params) ? params : [];
 
   try {
-    const result = await executeDebugQuery(queryString, queryParams);
+    const result = await queryEvents(queryString, queryParams);
     
     if (result.success) {
       return res.status(200).json(result);

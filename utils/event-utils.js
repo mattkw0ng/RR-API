@@ -76,9 +76,9 @@ const getEventById = async (eventId) => {
   }
 }
 
-const queryEvents = async (queryString) => {
+const queryEvents = async (queryString, queryParams) => {
   try {
-    const { rows } = await pool.query(queryString);
+    const { rows } = await pool.query(queryString, queryParams);
     return rows;
   } catch (error) {
     log.error("Debug Fetch Error:", error);
