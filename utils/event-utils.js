@@ -51,9 +51,9 @@ const getNumPendingEvents = async () => {
 const getEventById = async (eventId) => {
   try {
     const query = `
-      SELECT id, summary, description, start_time, end_time, rooms, recurrence_rule
+      SELECT id, start_time, end_time, rooms
       FROM events
-      WHERE id = $1
+      WHERE event_id = $1
     `;
     const { rows } = await pool.query(query, [eventId]);
 
@@ -76,7 +76,7 @@ const getEventById = async (eventId) => {
   }
 }
 
-const queryEvents = async (queryString, queryParams) => {
+const submitQuery = async (queryString, queryParams) => {
   try {
     console.log("[queryEvents]", queryString, queryParams);
     const { rows } = await pool.query(queryString, queryParams);
@@ -367,5 +367,5 @@ module.exports = {
   generateRoomsAttendeesList,
   detectRoomsFormat,
   getEventById,
-  queryEvents
+  submitQuery,
 };

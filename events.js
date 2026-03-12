@@ -14,7 +14,7 @@ const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 const { authorize } = require("./utils/authorize");
 const { unpackExtendedProperties } = require('./utils/general');
-const { extractEventDetailsForEmail, checkForConflicts, getAvailability, getRoomNamesFromCalendarIds, generateRoomsAttendeesList, detectRoomsFormat, getEventById } = require('./utils/event-utils');
+const { extractEventDetailsForEmail, checkForConflicts, getAvailability, getRoomNamesFromCalendarIds, generateRoomsAttendeesList, detectRoomsFormat, getEventById, submitQuery } = require('./utils/event-utils');
 const {
   sendReservationReceivedEmail,
   sendReservationApprovedEmail,
@@ -1358,7 +1358,7 @@ router.post('/query', async (req, res) => {
 
   try {
     console.log("submitting query")
-    const result = await queryEvents(queryString, queryParams);
+    const result = await submitQuery(queryString, queryParams);
     
     if (result.success) {
       return res.status(200).json(result);
