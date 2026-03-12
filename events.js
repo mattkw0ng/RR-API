@@ -1348,7 +1348,7 @@ router.get('/eventById', async (req, res) => {
 
 router.post('/query', async (req, res) => {
   const { queryString, params } = req.body;
-
+  console.log("QUERY:", queryString, params);
   if (!queryString) {
     return res.status(400).json({ error: "queryString is required" });
   }
