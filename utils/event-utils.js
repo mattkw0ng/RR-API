@@ -46,6 +46,47 @@ const getNumPendingEvents = async () => {
 };
 
 /**
+ * get event by id from database
+ */
+const getEventById = async (eventId) => {
+  try {
+    const query = `
+      SELECT id, summary, description, start_time, end_time, rooms, recurrence_rule
+      FROM events
+      WHERE id = $1
+    `;
+    const { rows } = await pool.query(query, [eventId]);
+
+    if (rows.length === 0) {
+      return { error: "Event not found" };
+    }
+
+    const event = rows[0];
+    
+    // Log details to the server console for quick inspection
+    console.log(`--- Debugging Event: ${event.summary} ---`);
+    console.log(`Start (Raw DB): ${event.start_time}`);
+    console.log(`End (Raw DB): ${event.end_time}`);
+    console.log(`Rooms: ${event.rooms}`);
+
+    return event;
+  } catch (error) {
+    log.error("Debug Fetch Error:", error);
+    throw new Error("Failed to fetch event for debugging.");
+  }
+}
+
+const queryEvents = async (queryString) => {
+  try {
+    const { rows } = await pool.query(queryString);
+    return rows;
+  } catch (error) {
+    log.error("Debug Fetch Error:", error);
+    throw new Error("Failed to fetch event for debugging.");
+  }
+}
+
+/**
  * Extract various details from the event object that are required for the email functions
  * @param {Object} event - The new event
  * @returns {Object} Contains userEmail, userName, eventName, eventStart, eventEnd, roomNames 
@@ -324,4 +365,6 @@ module.exports = {
   getRoomNamesFromCalendarIds,
   generateRoomsAttendeesList,
   detectRoomsFormat,
+  getEventById,
+  queryEvents
 };

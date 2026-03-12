@@ -14,7 +14,7 @@ const ROOM_IDS_PATH = path.join(__dirname, 'json/room-ids.json');
 const ROOM_IDS = JSON.parse(fs.readFileSync(ROOM_IDS_PATH, 'utf-8'));
 const { authorize } = require("./utils/authorize");
 const { unpackExtendedProperties } = require('./utils/general');
-const { extractEventDetailsForEmail, checkForConflicts, getAvailability, getRoomNamesFromCalendarIds, generateRoomsAttendeesList, detectRoomsFormat } = require('./utils/event-utils');
+const { extractEventDetailsForEmail, checkForConflicts, getAvailability, getRoomNamesFromCalendarIds, generateRoomsAttendeesList, detectRoomsFormat, getEventById } = require('./utils/event-utils');
 const {
   sendReservationReceivedEmail,
   sendReservationApprovedEmail,
@@ -1333,6 +1333,41 @@ router.get('/eventsByAttendee', async (req, res) => {
       res.status(404).send('No events found for this attendee');
     }
   });
+});
+
+// Simple get event by id from the database
+router.get('db/eventById', async (req, res) => {
+  const auth = await authorize();
+  const eventId = req.query.eventId;
+
+  if (!eventId) {
+    return res.status(400).send("EventId is required")
+  }
+
+  return getEventById(eventId);
+});
+
+router.post('/db/query', async (req, res) => {
+  const { queryString, params } = req.body;
+
+  if (!queryString) {
+    return res.status(400).json({ error: "queryString is required" });
+  }
+
+  // Ensure params is an array, even if empty
+  const queryParams = Array.isArray(params) ? params : [];
+
+  try {
+    const result = await executeDebugQuery(queryString, queryParams);
+    
+    if (result.success) {
+      return res.status(200).json(result);
+    } else {
+      return res.status(400).json(result); // Returns the SQL error/hint
+    }
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error during debug query" });
+  }
 });
 
 // Reject a pending Event (delete?) might need to change this in the future to move to rejected calendar
