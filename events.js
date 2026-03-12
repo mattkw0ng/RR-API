@@ -1357,6 +1357,7 @@ router.post('/query', async (req, res) => {
   const queryParams = Array.isArray(params) ? params : [];
 
   try {
+    console.log("submitting query")
     const result = await queryEvents(queryString, queryParams);
     
     if (result.success) {

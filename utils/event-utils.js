@@ -78,6 +78,7 @@ const getEventById = async (eventId) => {
 
 const queryEvents = async (queryString, queryParams) => {
   try {
+    console.log("[queryEvents]", queryString, queryParams);
     const { rows } = await pool.query(queryString, queryParams);
     return rows;
   } catch (error) {
