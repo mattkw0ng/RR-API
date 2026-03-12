@@ -1336,8 +1336,7 @@ router.get('/eventsByAttendee', async (req, res) => {
 });
 
 // Simple get event by id from the database
-router.get('db/eventById', async (req, res) => {
-  const auth = await authorize();
+router.get('/eventById', async (req, res) => {
   const eventId = req.query.eventId;
 
   if (!eventId) {
@@ -1347,7 +1346,7 @@ router.get('db/eventById', async (req, res) => {
   return getEventById(eventId);
 });
 
-router.post('/db/query', async (req, res) => {
+router.post('/query', async (req, res) => {
   const { queryString, params } = req.body;
 
   if (!queryString) {
