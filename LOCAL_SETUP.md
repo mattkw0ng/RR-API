@@ -1,0 +1,317 @@
+# Local Development Setup Guide
+
+This guide identifies all the variable names and configuration points you need to change to run this codebase locally on your computer.
+
+---
+
+## 1. Environment Variables (.env file)
+
+Create a `.env` file in the project root with the following variables:
+
+```bash
+# Google Calendar API Credentials
+# These come from your Google Cloud Console project
+CLIENT_ID=your-google-client-id
+CLIENT_SECRET=your-google-client-secret
+REFRESH_TOKEN=your-google-refresh-token
+
+# Calendar IDs (from your Google Calendars)
+# Create or identify these calendars in your Google Calendar account
+PENDING_APPROVAL_CALENDAR_ID=your-pending-calendar-id@group.calendar.google.com
+APPROVED_CALENDAR_ID=your-approved-calendar-id@group.calendar.google.com
+PROPOSED_CHANGES_CALENDAR_ID=your-proposed-calendar-id@group.calendar.google.com
+
+# PostgreSQL Database
+DATABASE_URL=postgresql://username:password@localhost:5432/room_reservation
+
+# Email (Nodemailer)
+NODEMAILER_PASS=your-gmail-app-password
+# or if using OAuth2, store credentials separately
+
+# Optional: Redis (if running locally)
+# Default is redis://localhost:6379
+```
+
+---
+
+## 2. Configuration Files
+
+### `config/config.js`
+**Current:**
+```javascript
+const CLIENT_URL = "https://rooms.sjcac.org";
+```
+
+**For Local Development:**
+```javascript
+const CLIENT_URL = "http://localhost:3000"; // or your frontend port
+```
+
+**Also update ALLOWED_CLIENT_URLS:**
+```javascript
+const ALLOWED_CLIENT_URLS = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000"
+];
+```
+
+---
+
+## 3. Server Configuration
+
+### `server.js`
+
+**Current hardcoded values:**
+
+| Line | Current Value | For Local Dev |
+|------|---------------|---------------|
+| 46 | `'redis://localhost:6379'` | Keep if running Redis locally, or change to your Redis URL |
+| 54 | `'SuperSecretSecret3'` | Change to a different secret string for local dev |
+| 58 | `domain: '.sjcac.org'` | Change to `'localhost'` or remove for local testing |
+| 59 | `secure: true` | Change to `false` for local (HTTP instead of HTTPS) |
+| 63 | `PORT = 5000` | Keep this or change to another free port |
+
+**Recommended local `server.js` changes:**
+```javascript
+// Line 46 - Redis connection
+const redisClient = createClient({
+  url: process.env.REDIS_URL || 'redis://localhost:6379'
+});
+
+// Line 54-62 - Session configuration
+app.use(session({
+  store: new RedisStore({ client: redisClient }),
+  secret: process.env.SESSION_SECRET || 'local-dev-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    sameSite: 'lax',
+    domain: process.env.COOKIE_DOMAIN || 'localhost', // Change for local
+    secure: process.env.NODE_ENV === 'production', // false for local
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24,
+  }
+}));
+
+// Line 63 - Port
+const PORT = process.env.PORT || 5000;
+```
+
+---
+
+## 4. Email Configuration
+
+### `utils/sendEmail.js` (or `utils/sendEmailSG.js`)
+
+**Current hardcoded email:**
+```javascript
+user: 'rooms@sjcac.org',
+```
+
+**For Local Development - use your own Gmail:**
+```javascript
+user: process.env.EMAIL_USER || 'your-email@gmail.com',
+```
+
+**Also update in `sendEmail` function:**
+```javascript
+from: `"Your App" <${process.env.EMAIL_USER || 'your-email@gmail.com'}>`,
+cc: process.env.EMAIL_ADMIN || 'your-email@gmail.com',
+```
+
+**Hardcoded URLs in email templates:**
+
+Replace all instances of:
+- `https://rooms.sjcac.org` → `http://localhost:3000` (or your frontend URL)
+- `https://rooms.sjcac.org/profile` → `http://localhost:3000/profile`
+- `https://api.rooms.sjcac.org` → `http://localhost:5000` (or your backend URL)
+- Organization-specific emails (celine.bower@sjcac.org, rooms@sjcac.org) → your test email
+
+---
+
+## 5. Database Connection
+
+### `db.js`
+
+**Current:**
+```javascript
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL
+});
+```
+
+**For Local PostgreSQL, your `.env` should have:**
+```bash
+DATABASE_URL=postgresql://postgres:password@localhost:5432/room_reservation_dev
+```
+
+**Or manually in code for testing:**
+```javascript
+const pool = new Pool({
+    user: process.env.DB_USER || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'room_reservation_dev',
+    password: process.env.DB_PASSWORD || 'password',
+    port: process.env.DB_PORT || 5432,
+});
+```
+
+---
+
+## 6. Google Calendar Credentials
+
+### `json/credentials.json`
+
+This file already exists in your repo and contains Google OAuth credentials.
+
+**For Local Development:**
+- Keep your existing `credentials.json` file (DO NOT commit to Git)
+- Ensure `redirect_uris` in the file includes:
+  ```json
+  "redirect_uris": [
+    "http://localhost:5000/auth/callback",
+    "http://127.0.0.1:5000/auth/callback"
+  ]
+  ```
+- Update these in [Google Cloud Console](https://console.cloud.google.com) under OAuth 2.0 Client IDs
+
+### `json/token.json`
+
+This file will be auto-generated by `utils/authorize.js` on first run. No changes needed.
+
+---
+
+## 7. Webhook Configuration
+
+### `utils/webhook-utils.js`
+
+**Current hardcoded webhook URL:**
+```javascript
+address: 'https://api.rooms.sjcac.org/webhook',
+```
+
+**For Local Development:**
+```javascript
+address: process.env.WEBHOOK_URL || 'http://localhost:5000/webhook',
+```
+
+Add to `.env`:
+```bash
+WEBHOOK_URL=http://localhost:5000/webhook
+```
+
+---
+
+## 8. Passport OAuth Configuration
+
+### `config/passportConfig.js`
+
+Check this file for any hardcoded domain/URL references. Likely areas:
+- OAuth callback URLs
+- Allowed redirect domains
+
+Should automatically read from `config/config.js`, but verify these are using `CLIENT_URL` variable.
+
+---
+
+## 9. Port Configuration Summary
+
+| Service | Current | Local Dev | Config File |
+|---------|---------|-----------|-------------|
+| Node.js Backend | 5000 | 5000 (or change) | `server.js` line 63 |
+| Frontend | HTTPS/Netlify | `http://localhost:3000` | `config/config.js` |
+| PostgreSQL | RDS/Production | `localhost:5432` | `.env` `DATABASE_URL` |
+| Redis | Production | `localhost:6379` | `server.js` line 46 |
+
+---
+
+## 10. `.gitignore` - Files NOT to Commit
+
+Ensure these are in `.gitignore`:
+```
+.env
+.env.local
+json/token.json
+json/credentials.json
+node_modules/
+```
+
+---
+
+## 11. Quick Checklist for Local Setup
+
+- [ ] Create `.env` file with all variables from Section 1
+- [ ] Update `config/config.js` CLIENT_URL to `http://localhost:3000`
+- [ ] Update `server.js` session cookie domain to `localhost`
+- [ ] Update `server.js` session cookie secure to `false`
+- [ ] Verify `json/credentials.json` has `http://localhost:5000` redirect URIs
+- [ ] Create PostgreSQL database locally (`room_reservation_dev`)
+- [ ] Update email addresses in `utils/sendEmail.js` templates to your test email
+- [ ] Update webhook URL in `utils/webhook-utils.js`
+- [ ] Ensure Redis is running on `localhost:6379` (or update `.env`)
+- [ ] Run `npm install` to install dependencies
+- [ ] Run `node server.js` to start backend
+
+---
+
+## 12. Summary Table: All Hardcoded Values to Change
+
+| Value | File(s) | Current | Change To | Priority |
+|-------|---------|---------|-----------|----------|
+| Frontend URL | `config/config.js` | `https://rooms.sjcac.org` | `http://localhost:3000` | HIGH |
+| Backend URL | Email templates, webhook | `https://api.rooms.sjcac.org` | `http://localhost:5000` | HIGH |
+| Email sender | `utils/sendEmail.js` | `rooms@sjcac.org` | Your test email | HIGH |
+| Session secret | `server.js` | `'SuperSecretSecret3'` | Use `.env` variable | MEDIUM |
+| Cookie domain | `server.js` | `.sjcac.org` | `localhost` | MEDIUM |
+| Cookie secure | `server.js` | `true` | `false` | MEDIUM |
+| Redis URL | `server.js` | `redis://localhost:6379` | Use `.env` | LOW |
+| Webhook address | `utils/webhook-utils.js` | `https://api.rooms.sjcac.org/webhook` | `http://localhost:5000/webhook` | MEDIUM |
+| Organization domain | All email templates | `sjcac.org`, `celine.bower@sjcac.org` | Your domain/email | MEDIUM |
+
+---
+
+## 13. Running Locally
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start PostgreSQL locally (if using Docker)
+docker run -d -e POSTGRES_PASSWORD=password -e POSTGRES_DB=room_reservation_dev -p 5432:5432 postgres:12
+
+# 3. Start Redis locally (if using Docker)
+docker run -d -p 6379:6379 redis:7
+
+# 4. Start the backend
+node server.js
+
+# The API will be available at http://localhost:5000
+```
+
+---
+
+## 14. Troubleshooting
+
+**"Cannot find module" errors:**
+- Run `npm install` again
+- Clear `node_modules/` and `npm install` fresh
+
+**Database connection errors:**
+- Verify PostgreSQL is running
+- Check `DATABASE_URL` in `.env`
+- Verify database exists and user has permissions
+
+**Redis connection errors:**
+- Verify Redis is running on `localhost:6379`
+- Or comment out Redis usage in `server.js` temporarily for local testing
+
+**Google Calendar authentication fails:**
+- Check `credentials.json` has correct `client_id` and `client_secret`
+- Verify redirect URIs in Google Cloud Console include `http://localhost:5000`
+- Delete `json/token.json` and re-authenticate
+
+**Email not sending:**
+- Verify `NODEMAILER_PASS` is set (Gmail App Password, not regular password)
+- Check email logs: `console.error` in `sendEmail` function
+- Verify sender email in `.env` matches Gmail account
+
