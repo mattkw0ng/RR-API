@@ -215,17 +215,45 @@ async function storeEvents(eventList, calendarId) {
     await client.query("BEGIN");
     for (const event of eventList) {
       if (event.status === 'confirmed') {
-        const { id: eventId, start, end, recurrence, attendees, extendedProperties } = event;
+        const { id: eventId, start, end, recurrence, attendees, extendedProperties, summary } = event;
 
         const startTime = new Date(start.dateTime).toISOString();
         const endTime = new Date(end.dateTime).toISOString();
         const recurrenceRule = recurrence ? recurrence.join(';') : null;
 
         let rooms = [];
+        
+        // Priority 1: Check extended properties for stored rooms
         if (extendedProperties?.private?.rooms) {
-          rooms = JSON.parse(extendedProperties.private.rooms).map(r => r.email);
-        } else if (attendees) {
-          rooms = attendees.filter(a => a.resource).map(a => a.email);
+          try {
+            const parsed = JSON.parse(extendedProperties.private.rooms);
+            // Handle both array of strings and array of objects {email, resource}
+            rooms = Array.isArray(parsed) 
+              ? parsed.map(r => typeof r === 'string' ? r : r.email).filter(Boolean)
+              : [];
+            console.log(`[storeEvents] ✅ Found ${rooms.length} room(s) in extendedProperties for event ${eventId} ("${summary}"): ${rooms.join(', ')}`);
+          } catch (e) {
+            console.warn(`[storeEvents] ⚠️ Failed to parse rooms from extended properties for event ${eventId}:`, e);
+            rooms = [];
+          }
+        }
+        
+        // Priority 2: If no rooms found in extended properties, extract from resource attendees
+        if (rooms.length === 0 && attendees) {
+          const resourceAttendees = attendees.filter(a => a.resource === true);
+          rooms = resourceAttendees.map(a => a.email);
+          
+          if (rooms.length > 0) {
+            console.log(`[storeEvents] ✅ Extracted ${rooms.length} room(s) from resource attendees for event ${eventId} ("${summary}"): ${rooms.join(', ')}`);
+          } else {
+            console.log(`[storeEvents] ⚠️ No resource attendees found for event ${eventId} ("${summary}"). Attendees: ${attendees.map(a => a.email).join(', ')}`);
+          }
+        }
+        
+        // Priority 3: If still no rooms, use the calendar itself as the room
+        if (rooms.length === 0 && calendarId) {
+          rooms = [calendarId];
+          console.log(`[storeEvents] ⚠️ No rooms found in event ${eventId} ("${summary}"), using calendar ID as fallback: ${calendarId}`);
         }
 
         await client.query(
@@ -265,7 +293,13 @@ async function processEvents(events, calendarId) {
           eventId: event.id,
         })
 
-        console.log(`Expanded ${instancesResponse.data.items.length} instances for event: ${event.id}`);
+        console.log(`[processEvents] 🔄 Expanded ${instancesResponse.data.items.length} instances for recurring event: ${event.id} ("${event.summary}")`);
+        
+        // Log the first instance to check if attendees/extendedProperties are preserved
+        if (instancesResponse.data.items.length > 0) {
+          const firstInstance = instancesResponse.data.items[0];
+          console.log(`[processEvents] First instance has attendees: ${firstInstance.attendees ? firstInstance.attendees.length : 0}, extendedProperties: ${firstInstance.extendedProperties ? 'yes' : 'no'}`);
+        }
 
         expandedEvents.push(...instancesResponse.data.items);
       } catch (error) {
