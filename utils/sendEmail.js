@@ -308,9 +308,16 @@ const notifyAdminsOfNewRequest = async (newEvent) => {
         hour: '2-digit',
         minute: '2-digit',
       })}</p>
-      <p><strong>Rooms:</strong> ${JSON.parse(newEvent.extendedProperties.private.rooms)
-        .map((room) => room.displayName)
-        .join(', ')}</p>
+      <p><strong>Rooms:</strong> ${(() => {
+        try {
+          const roomsJson = newEvent.extendedProperties?.private?.rooms || "[]";
+          return JSON.parse(roomsJson)
+            .map((room) => room.displayName || room.email || 'Unknown Room')
+            .join(', ');
+        } catch (err) {
+          return 'Unable to parse room information';
+        }
+      })()}</p>
       <p><strong>Description:</strong> ${newEvent.description || 'No description provided'}</p>
     `;
 

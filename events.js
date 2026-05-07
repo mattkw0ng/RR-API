@@ -370,7 +370,15 @@ router.get('/getEventsByRoom', async (req, res) => {
     const approvedEvents = response.data.items || [];
     // filter pending events by room
     log.info(pendingResponse)
-    const pendingEvents = pendingResponse.data.items.filter((e) => JSON.parse(e.extendedProperties.private.rooms).find((l) => l.email === roomId)) // need to add flex for multiple rooms and for when provate.rooms is roomNames instead of roomIds
+    const pendingEvents = pendingResponse.data.items.filter((e) => {
+      try {
+        const rooms = JSON.parse(e.extendedProperties?.private?.rooms || "[]");
+        return rooms.find((l) => l.email === roomId);
+      } catch (err) {
+        log.warn(`[getEventsByRoom] Could not parse rooms for event ${e.id}:`, err.message);
+        return false;
+      }
+    }) // need to add flex for multiple rooms and for when private.rooms is roomNames instead of roomIds
     res.status(200).json([approvedEvents, pendingEvents]);
   } catch (error) {
     console.error(`Error fetching events for room "${room}":`, error.message);
@@ -652,6 +660,13 @@ router.get('/pendingEventsWithConflicts', async (req, res) => {
       }
       log.info(`Normalized room resources list:`, roomResources);
       // const roomResource = attendees?.find(attendee => attendee.resource === true);
+      
+      // Safely initialize extendedProperties if it doesn't exist
+      if (!pendingEvent.extendedProperties) {
+        pendingEvent.extendedProperties = { private: {} };
+      } else if (!pendingEvent.extendedProperties.private) {
+        pendingEvent.extendedProperties.private = {};
+      }
       pendingEvent.extendedProperties.private.rooms = JSON.stringify(roomResources); // add the room resources to the event details for frontend use
 
       if (pendingEvent.recurrence) {
@@ -910,7 +925,14 @@ router.post('/partiallyApproveRecurringEvent', async (req, res) => {
     const instances = instancesResponse.data.items;
 
     // 3. For each instance, check for conflicts in the approved calendar
-    const roomResources = JSON.parse(event.extendedProperties.private.rooms).map((room) => room.email);
+    let roomResources = [];
+    try {
+      const roomsJson = event.extendedProperties?.private?.rooms || "[]";
+      roomResources = JSON.parse(roomsJson).map((room) => room.email);
+    } catch (err) {
+      log.warn(`[approveRecurringEventSelectiveDates] Could not parse rooms for event ${event.id}:`, err.message);
+      return res.status(400).send('Event does not have room information attached. Cannot approve.');
+    }
     const nonConflictingDates = [];
     const conflictingInstances = [];
     for (const instance of instances) {

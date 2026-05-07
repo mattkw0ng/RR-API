@@ -106,7 +106,7 @@ const extractEventDetailsForEmail = async (event) => {
   const eventStart = event.start.dateTime;
   const eventEnd = event.end.dateTime;
   const htmlLink = event.htmlLink || "No link provided";
-  log.info(event.extendedProperties.private);
+  log.info(event.extendedProperties?.private);
   // const roomNames = JSON.parse(event.extendedProperties?.private?.rooms || event.attendees.filter((room) => room.resource === true)).map(
   //   (room) => room.email || "Unknown Room"
   // );
