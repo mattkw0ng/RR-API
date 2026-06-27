@@ -296,7 +296,7 @@ async function processEvents(events, calendarId) {
 
     // 1. Handle Deletions Immediately
     if (event.status === 'cancelled') {
-      console.log(`[processEvents] 🗑️ Found cancellation for Event ID: ${event.id}`);
+      console.log(`[processEvents] 🗑️ Found cancellation for Event ID: ${event.id} "${eventTitle}" (By: ${creator})`);
       cancelledEventIds.push(event.id);
       continue;
     }
