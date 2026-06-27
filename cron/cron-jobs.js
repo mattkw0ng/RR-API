@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const pool = require('./db'); // Path to your db pool file
+const pool = require('../db'); // Path to your db pool file
 
 /**
  * Retention Pruning Query
