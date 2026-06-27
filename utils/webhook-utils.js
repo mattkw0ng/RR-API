@@ -188,20 +188,32 @@ async function syncCalendarChanges(syncToken, calendarId) {
 }
 
 async function syncAllCalendarsOnStartup() {
-  console.log("🚀 Starting initialization sequence on server startup...");
-  
-  // Clean tables completely to remove stale states
-  await pool.query("TRUNCATE TABLE events");
-  await pool.query("TRUNCATE TABLE google_sync_tokens"); 
+  console.log("🚀 Server booting up. Restoring localized state...");
 
   const calendarIds = [PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID];
 
+  // Removed Truncating to preserve old tokens during server restart
+  // await pool.query("TRUNCATE TABLE events");
+  // await pool.query("TRUNCATE TABLE google_sync_tokens"); 
+
   for (const calendarId of calendarIds) {
+    // Keep webhooks updated cleanly
     await stopExistingWatches(calendarId);
-    await fullCalendarSync(calendarId);
+    await watchCalendar(calendarId);
+    
+    const existingToken = await getStoredSyncToken(calendarId);
+    
+    if (!existingToken) {
+      console.log(`[Startup] Fresh calendar detected. Building baseline for ${calendarId}...`);
+      await fullCalendarSync(calendarId);
+    } else {
+      console.log(`[Startup] Memory match found for ${calendarId}. Processing catch-up logs...`);
+      // Pulls only modifications made while the server was down (takes milliseconds)
+      await syncCalendarChanges(existingToken, calendarId);
+    }
   }
 
-  console.log("📋 Initial setup complete. Local caches fully populated.");
+  console.log("📋 Initialization complete. System running on a persistent cache.");
 }
 
 // =========================================================================
