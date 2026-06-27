@@ -10,7 +10,7 @@ router.post('/webhook', async (req, res) => {
 
   const resourceState = req.headers['x-goog-resource-state'];
   const resourceId = req.headers['x-goog-resource-id'];
-  const channelId = req.headers['x-goog-channel-id']
+  const channelId = req.headers['x-goog-channel-id'];
   console.log("Resource ID: ", resourceId);
 
   const calendarId = await getCalendarIdByResourceId(resourceId, channelId);
@@ -20,19 +20,24 @@ router.post('/webhook', async (req, res) => {
     return res.status(400).send("Invalid resource ID or channel ID");
   }
 
-  console.log(`Syncing changes for calendar ID: ${calendarId}`);
+  // 1. Send the 200 OK immediately so Google knows the message was delivered successfully
+  res.status(200).send("Acknowledged");
 
-  const syncToken = await getStoredSyncToken(calendarId); // Retrieve last sync token from DB
+  // 2. Safely grab the sync token
+  const syncToken = await getStoredSyncToken(calendarId);
 
+  // 3. Process the changes asynchronously in the background (Notice: no 'await' before syncCalendarChanges)
   if (resourceState === 'sync') {
-    console.log("Google Calendar Sync Needed");
-    await syncCalendarChanges(syncToken, calendarId);
+    console.log(`[Webhook] Initial sync handshake initiated for calendar: ${calendarId}`);
+    syncCalendarChanges(syncToken, calendarId).catch(err => {
+      console.error(`❌ Background initial sync failed for ${calendarId}:`, err);
+    });
   } else {
-    console.log("Change detected, updating events...");
-    await syncCalendarChanges(syncToken, calendarId);
+    console.log(`[Webhook] Event change detected. Processing delta for calendar: ${calendarId}`);
+    syncCalendarChanges(syncToken, calendarId).catch(err => {
+      console.error(`❌ Background delta sync failed for ${calendarId}:`, err);
+    });
   }
-
-  res.status(200).send(); // Always respond with 200 OK
 });
 
 module.exports = router;
