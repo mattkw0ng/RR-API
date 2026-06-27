@@ -290,12 +290,20 @@ async function processEvents(events, calendarId) {
   let cancelledEventIds = [];
 
   for (const event of events) {
+    // Read clean, readable names or provide fallbacks if they are blank
+    const eventTitle = event.summary || "Untitled Event";
+    const creator = event.creator?.email || "Unknown Creator";
+
+    // 1. Handle Deletions Immediately
     if (event.status === 'cancelled') {
+      console.log(`[processEvents] 🗑️ Found cancellation for Event ID: ${event.id}`);
       cancelledEventIds.push(event.id);
       continue;
     }
 
+    // 2. Safely Cap Recurring Event Expansion
     if (event.recurrence) {
+      const rrule = event.recurrence.join('; ');
       try {
         const instancesResponse = await calendar.events.instances({
           calendarId: calendarId,
@@ -305,12 +313,15 @@ async function processEvents(events, calendarId) {
           singleEvents: true
         });
 
-        console.log(`[processEvents] 🔄 Expanded ${instancesResponse.data.items.length} instances for recurring event: ${event.id}`);
+        const count = instancesResponse.data.items.length;
+        console.log(`[processEvents] 🔄 Expanded ${count} instances in next 6 mos for: "${eventTitle}" (By: ${creator} | Rule: ${rrule})`);
+        
         expandedEvents.push(...instancesResponse.data.items);
       } catch (error) {
-        console.error(`❌ Error expanding instances for event ${event.id}:`, error);
+        console.error(`❌ Error expanding instances for "${eventTitle}" (${event.id}):`, error);
       }
     } else {
+      // 3. For single events, verify they fall within the 6-month window before storing
       const eventEnd = event.end?.dateTime || event.end?.date;
       if (eventEnd && new Date(eventEnd) < sixMonthsLater) {
         expandedEvents.push(event);
@@ -318,13 +329,13 @@ async function processEvents(events, calendarId) {
     }
   }
 
-  // 1. Execute deletions using exact structural column naming conventions
+  // 4. Execute deletions using exact structural column naming conventions
   if (cancelledEventIds.length > 0) {
     console.log(`[processEvents] 🗑️ Removing ${cancelledEventIds.length} cancelled IDs from local cache.`);
     await deleteEventsFromDB(cancelledEventIds, calendarId); 
   }
 
-  // 2. Commit modifications/additions
+  // 5. Commit modifications/additions
   if (expandedEvents.length > 0) {
     await storeEvents(expandedEvents, calendarId);
   }
