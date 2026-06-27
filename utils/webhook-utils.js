@@ -6,30 +6,28 @@ const PENDING_APPROVAL_CALENDAR_ID = process.env.PENDING_APPROVAL_CALENDAR_ID;
 const APPROVED_CALENDAR_ID = process.env.APPROVED_CALENDAR_ID;
 const PROPOSED_CHANGES_CALENDAR_ID = process.env.PROPOSED_CHANGES_CALENDAR_ID;
 
+// =========================================================================
+// 1. WEBHOOK MANAGEMENT (WATCH Channels)
+// =========================================================================
+
 async function watchCalendar(calendarId) {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
   const safeCalendarId = calendarId.split('@')[0];
-
-  // Generate a valid and unique Channel ID
   const channelId = `watch-${safeCalendarId}-${Date.now()}`;
 
   const response = await calendar.events.watch({
     calendarId: calendarId,
     requestBody: {
-      id: channelId, // Unique channel ID
+      id: channelId,
       type: 'web_hook',
-      address: 'https://api.rooms.sjcac.org/webhook', // Your webhook endpoint
-      params: { ttl: 604800 } // Max 7 days (must renew periodically)
+      address: 'https://api.rooms.sjcac.org/webhook', 
+      params: { ttl: 604800 } // 7 days
     },
   });
 
   console.log("Watch request successful:", response.data);
-
-  const resourceId = response.data.resourceId;
-
-  await saveResourceIdMapping(resourceId, calendarId, channelId);
-  console.log(`🔗 Stored mapping: ${resourceId} → ${calendarId}`);
+  await saveResourceIdMapping(response.data.resourceId, calendarId, channelId);
 }
 
 async function saveResourceIdMapping(resourceId, calendarId, channelId) {
@@ -51,39 +49,25 @@ async function stopExistingWatches(calendarId) {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
 
-  // Fetch both channel_id and resource_id from the database
   const result = await pool.query("SELECT channel_id, resource_id FROM watch_mapping WHERE calendar_id = $1", [calendarId]);
 
   if (result.rows.length > 0) {
     const { channel_id, resource_id } = result.rows[0];
-
-    console.log(`🛑 Stopping existing watch for ${calendarId} with channel ID: ${channel_id} and resource ID: ${resource_id}`);
+    console.log(`🛑 Stopping existing watch for ${calendarId} (Channel: ${channel_id})`);
 
     try {
-      // Stop the existing watch (requires both channel_id and resource_id)
       await calendar.channels.stop({
-        requestBody: {
-          id: channel_id,  // Unique channel ID
-          resourceId: resource_id, // Google-assigned resource ID
-        },
+        requestBody: { id: channel_id, resourceId: resource_id },
       });
-
-      console.log(`✅ Successfully stopped watch for ${calendarId}`);
-
-      // Remove the mapping from the database
       await pool.query("DELETE FROM watch_mapping WHERE calendar_id = $1", [calendarId]);
-
+      console.log(`✅ Successfully stopped watch for ${calendarId}`);
     } catch (error) {
       console.error(`❌ Error stopping watch for ${calendarId}:`, error);
     }
-  } else {
-    console.log(`ℹ️ No existing watch found for ${calendarId}`);
   }
 }
 
-
 async function getCalendarIdByResourceId(resourceId, channelId) {
-  console.log("~~ gettingCalendarIdByResourceID: ", resourceId);
   const result = await pool.query(
     "SELECT calendar_id FROM watch_mapping WHERE resource_id = $1 AND channel_id = $2",
     [resourceId, channelId]
@@ -91,21 +75,25 @@ async function getCalendarIdByResourceId(resourceId, channelId) {
   return result.rows.length ? result.rows[0].calendar_id : null;
 }
 
+// =========================================================================
+// 2. TIMELINE SYNCHRONIZATION LOGIC
+// =========================================================================
+
 async function fullCalendarSync(calendarId) {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
   
   try {
-    console.log(`Performing full sync for calendar: ${calendarId}`);
+    console.log(`🔄 Performing scoped full sync for calendar: ${calendarId}`);
 
     let allEvents = [];
     let nextPageToken = null;
-    let nextSyncToken = null;
+    let finalSyncToken = null;
+    
     const now = new Date();
     const sixMonthsLater = new Date();
     sixMonthsLater.setMonth(now.getMonth() + 6);
 
-    // Fetch all events using pagination
     do {
       const response = await calendar.events.list({
         calendarId: calendarId,
@@ -117,36 +105,94 @@ async function fullCalendarSync(calendarId) {
         pageToken: nextPageToken,
       });
 
-      allEvents.push(...response.data.items);
+      if (response.data.items) {
+        allEvents.push(...response.data.items);
+      }
+      
       nextPageToken = response.data.nextPageToken;
-      nextSyncToken = response.data.nextSyncToken; // Store the latest sync token for future incremental updates (Not working )
-      console.log(`Fetched ${response.data.items.length} events from calendar ${calendarId}`);
+      
+      // Google only returns nextSyncToken on the final structural page of data
+      if (response.data.nextSyncToken) {
+        finalSyncToken = response.data.nextSyncToken;
+      }
     } while (nextPageToken);
 
-    console.log(`Full sync fetched ${allEvents.length} events for calendar ${calendarId}`);
-
-    // Store fetched events in the database
+    // Filter down to confirmed items for insertion safety
     const confirmedEvents = allEvents.filter(event => event.status === 'confirmed');
-    console.log(`Storing ${confirmedEvents.length} confirmed events for calendar ${calendarId}`);
     await storeEvents(confirmedEvents, calendarId);
 
-    // Store the new sync token for future incremental updates
-    if (nextSyncToken) {
-      await storeSyncToken(nextSyncToken, calendarId);
-      console.log("New sync token stored successfully");
-    } else {
-      console.warn("No sync token available after full sync (ignore if this is expected)");
+    // If Google didn't give us a sync token because we used time limits, 
+    // we fetch a fresh baseline token without filters to safeguard webhooks.
+    if (!finalSyncToken) {
+      const tokenCheck = await calendar.events.list({ calendarId, maxResults: 1 });
+      finalSyncToken = tokenCheck.data.nextSyncToken;
+    }
+
+    if (finalSyncToken) {
+      await storeSyncToken(finalSyncToken, calendarId);
+      console.log(`✅ Scoped full sync finished. Baseline Sync Token written for ${calendarId}`);
     }
 
   } catch (error) {
-    console.error(`Error during full sync for ${calendarId}:`, error);
+    console.error(`❌ Critical error during full sync for ${calendarId}:`, error);
+  }
+}
+
+async function syncCalendarChanges(syncToken, calendarId) {
+  const auth = await authorize();
+  const calendar = google.calendar({ version: 'v3', auth });
+
+  const now = new Date();
+  const sixMonthsLater = new Date();
+  sixMonthsLater.setMonth(now.getMonth() + 6);
+
+  try {
+    // 1. Pull change logs delta cleanly (No forbidden time parameters allowed)
+    const response = await calendar.events.list({
+      calendarId: calendarId,
+      syncToken: syncToken,
+    });
+
+    const eventsToProcess = [];
+
+    for (const event of response.data.items) {
+      // Deletions MUST progress to processEvents regardless of dates
+      if (event.status === 'cancelled') {
+        eventsToProcess.push(event);
+        continue;
+      }
+
+      // Ensure active elements fit our structural local caching window
+      const eventEnd = event.end?.dateTime || event.end?.date;
+      if (eventEnd && new Date(eventEnd) < sixMonthsLater) {
+        eventsToProcess.push(event);
+      }
+    }
+
+    console.log(`[syncCalendarChanges] Sync Delta: Received ${response.data.items.length}, passing ${eventsToProcess.length} downstream.`);
+
+    if (response.data.nextSyncToken) {
+      await storeSyncToken(response.data.nextSyncToken, calendarId);
+    }
+
+    await processEvents(eventsToProcess, calendarId);
+
+  } catch (error) {
+    if (error.code === 410) {
+      console.warn(`⚠️ Sync token expired for ${calendarId}. Re-aligning baselines...`);
+      await fullCalendarSync(calendarId);
+    } else {
+      console.error(`❌ Error syncing data changes for ${calendarId}:`, error);
+    }
   }
 }
 
 async function syncAllCalendarsOnStartup() {
-  console.log("Starting full calendar sync on server startup...");
-  console.log("🗑️ Removing old events...");
-  await pool.query("TRUNCATE TABLE events"); // Deletes past events
+  console.log("🚀 Starting initialization sequence on server startup...");
+  
+  // Clean tables completely to remove stale states
+  await pool.query("TRUNCATE TABLE events");
+  await pool.query("TRUNCATE TABLE google_sync_tokens"); 
 
   const calendarIds = [PENDING_APPROVAL_CALENDAR_ID, APPROVED_CALENDAR_ID, PROPOSED_CHANGES_CALENDAR_ID];
 
@@ -155,53 +201,20 @@ async function syncAllCalendarsOnStartup() {
     await fullCalendarSync(calendarId);
   }
 
-  console.log("Initial full sync for all calendars completed.");
+  console.log("📋 Initial setup complete. Local caches fully populated.");
 }
 
-
-
-async function syncCalendarChanges(syncToken, calendarId) {
-  const auth = await authorize();
-  const calendar = google.calendar({ version: 'v3', auth })
-
-  const now = new Date();
-  const sixMonthsLater = new Date();
-  sixMonthsLater.setMonth(now.getMonth() + 6);
-
-  try {
-    const response = await calendar.events.list({
-      calendarId: calendarId,
-      syncToken: syncToken,
-    });
-
-    const filtered = response.data.items.filter(e => 
-      e.end?.dateTime && new Date(e.end.dateTime) < sixMonthsLater
-    );
-
-    console.log("[syncCalendarChanges] UpdatedEvents: ", response.data.items.length, " filtered: ", filtered.length);
-
-    if (response.data.nextSyncToken) {
-      await storeSyncToken(response.data.nextSyncToken, calendarId);
-    }
-
-    await processEvents(filtered, calendarId);
-  } catch (error) {
-    if (error.code === 410) {
-      console.log("Sync token expired, full sync required...");
-      await fullCalendarSync(calendarId);
-    } else {
-      console.error("Error syncing calendar: ", error);
-    }
-  }
-}
+// =========================================================================
+// 3. DATABASE TRANSLATION & STORAGE LAYERS
+// =========================================================================
 
 async function storeSyncToken(syncToken, calendarId) {
   await pool.query(
-    `INSERT INTO google_sync_tokens (calendar_id, sync_token)
-    VALUES ($1, $2)
-    ON CONFLICT (calendar_id) DO UPDATE SET sync_token = EXCLUDED.sync_token, updated_at = NOW()`,
+    `INSERT INTO google_sync_tokens (calendar_id, sync_token, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (calendar_id) DO UPDATE SET sync_token = EXCLUDED.sync_token, updated_at = NOW()`,
     [calendarId, syncToken]
-  )
+  );
 }
 
 async function getStoredSyncToken(calendarId) {
@@ -217,63 +230,49 @@ async function storeEvents(eventList, calendarId) {
       if (event.status === 'confirmed') {
         const { id: eventId, start, end, recurrence, attendees, extendedProperties, summary } = event;
 
-        const startTime = new Date(start.dateTime).toISOString();
-        const endTime = new Date(end.dateTime).toISOString();
+        // Fallbacks for all-day events vs standard dateTimes
+        const startTime = new Date(start.dateTime || start.date).toISOString();
+        const endTime = new Date(end.dateTime || end.date).toISOString();
         const recurrenceRule = recurrence ? recurrence.join(';') : null;
 
         let rooms = [];
         
-        // Priority 1: Check extended properties for stored rooms
         if (extendedProperties?.private?.rooms) {
           try {
             const parsed = JSON.parse(extendedProperties.private.rooms);
-            // Handle both array of strings and array of objects {email, resource}
             rooms = Array.isArray(parsed) 
               ? parsed.map(r => typeof r === 'string' ? r : r.email).filter(Boolean)
               : [];
-            console.log(`[storeEvents] ✅ Found ${rooms.length} room(s) in extendedProperties for event ${eventId} ("${summary}"): ${rooms.join(', ')}`);
           } catch (e) {
-            console.warn(`[storeEvents] ⚠️ Failed to parse rooms from extended properties for event ${eventId}:`, e);
             rooms = [];
           }
         }
         
-        // Priority 2: If no rooms found in extended properties, extract from resource attendees
         if (rooms.length === 0 && attendees) {
-          const resourceAttendees = attendees.filter(a => a.resource === true);
-          rooms = resourceAttendees.map(a => a.email);
-          
-          if (rooms.length > 0) {
-            console.log(`[storeEvents] ✅ Extracted ${rooms.length} room(s) from resource attendees for event ${eventId} ("${summary}"): ${rooms.join(', ')}`);
-          } else {
-            console.log(`[storeEvents] ⚠️ No resource attendees found for event ${eventId} ("${summary}"). Attendees: ${attendees.map(a => a.email).join(', ')}`);
-          }
+          rooms = attendees.filter(a => a.resource === true).map(a => a.email);
         }
         
-        // Priority 3: If still no rooms, use the calendar itself as the room
         if (rooms.length === 0 && calendarId) {
           rooms = [calendarId];
-          console.log(`[storeEvents] ⚠️ No rooms found in event ${eventId} ("${summary}"), using calendar ID as fallback: ${calendarId}`);
         }
 
         await client.query(
           `INSERT INTO events (event_id, calendar_id, start_time, end_time, recurrence_rule, rooms, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW())
-        ON CONFLICT (event_id) DO UPDATE
-        SET start_time = EXCLUDED.start_time,
-            end_time = EXCLUDED.end_time,
-            recurrence_rule = EXCLUDED.recurrence_rule,
-            rooms = EXCLUDED.rooms,
-            updated_at = NOW()
-        `, [eventId, calendarId, startTime, endTime, recurrenceRule, rooms]
-        )
+           VALUES ($1, $2, $3, $4, $5, $6, NOW())
+           ON CONFLICT (event_id) DO UPDATE
+           SET start_time = EXCLUDED.start_time,
+               end_time = EXCLUDED.end_time,
+               recurrence_rule = EXCLUDED.recurrence_rule,
+               rooms = EXCLUDED.rooms,
+               updated_at = NOW()`, 
+          [eventId, calendarId, startTime, endTime, recurrenceRule, rooms]
+        );
       }
     }
-
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("error storing events", error);
+    console.error("❌ Error running storeEvents batch block:", error);
   } finally {
     client.release();
   }
@@ -283,34 +282,64 @@ async function processEvents(events, calendarId) {
   const auth = await authorize();
   const calendar = google.calendar({ version: 'v3', auth });
 
+  const now = new Date();
+  const sixMonthsLater = new Date();
+  sixMonthsLater.setMonth(now.getMonth() + 6);
+
   let expandedEvents = [];
+  let cancelledEventIds = [];
 
   for (const event of events) {
+    if (event.status === 'cancelled') {
+      cancelledEventIds.push(event.id);
+      continue;
+    }
+
     if (event.recurrence) {
       try {
         const instancesResponse = await calendar.events.instances({
           calendarId: calendarId,
           eventId: event.id,
-        })
+          timeMin: now.toISOString(),
+          timeMax: sixMonthsLater.toISOString(),
+          singleEvents: true
+        });
 
-        console.log(`[processEvents] 🔄 Expanded ${instancesResponse.data.items.length} instances for recurring event: ${event.id} ("${event.summary}")`);
-        
-        // Log the first instance to check if attendees/extendedProperties are preserved
-        if (instancesResponse.data.items.length > 0) {
-          const firstInstance = instancesResponse.data.items[0];
-          console.log(`[processEvents] First instance has attendees: ${firstInstance.attendees ? firstInstance.attendees.length : 0}, extendedProperties: ${firstInstance.extendedProperties ? 'yes' : 'no'}`);
-        }
-
+        console.log(`[processEvents] 🔄 Expanded ${instancesResponse.data.items.length} instances for recurring event: ${event.id}`);
         expandedEvents.push(...instancesResponse.data.items);
       } catch (error) {
-        console.error(`Error expanding instances for event ${event.id}:`, error);
+        console.error(`❌ Error expanding instances for event ${event.id}:`, error);
       }
     } else {
-      expandedEvents.push(event);
+      const eventEnd = event.end?.dateTime || event.end?.date;
+      if (eventEnd && new Date(eventEnd) < sixMonthsLater) {
+        expandedEvents.push(event);
+      }
     }
   }
 
-  storeEvents(expandedEvents, calendarId);
+  // 1. Execute deletions using exact structural column naming conventions
+  if (cancelledEventIds.length > 0) {
+    console.log(`[processEvents] 🗑️ Removing ${cancelledEventIds.length} cancelled IDs from local cache.`);
+    await deleteEventsFromDB(cancelledEventIds, calendarId); 
+  }
+
+  // 2. Commit modifications/additions
+  if (expandedEvents.length > 0) {
+    await storeEvents(expandedEvents, calendarId);
+  }
+}
+
+async function deleteEventsFromDB(eventIds, calendarId) {
+  try {
+    // Aligned with the correct table name 'events' and column name 'event_id'
+    await pool.query(
+      `DELETE FROM events WHERE event_id = ANY($1) AND calendar_id = $2`,
+      [eventIds, calendarId]
+    );
+  } catch (error) {
+    console.error("❌ Database deletion step failed:", error);
+  }
 }
 
 module.exports = {
@@ -323,4 +352,4 @@ module.exports = {
   storeEvents,
   processEvents,
   syncAllCalendarsOnStartup,
-}
+};
