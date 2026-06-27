@@ -313,111 +313,113 @@ async function syncMissingEventsToDB(googleEvents, roomList) {
 
 /**
  * Main conflict check: HYBRID approach (Database + API verification)
- * 
- * STRATEGY:
- * 1. Fast path: Query database (99% of time, instant)
- * 2. Verification: If conflicts found, verify with API
- * 3. Catch-all: If no DB conflicts, check API for missed events
- * 
- * This gives us speed + accuracy without sacrificing too much performance.
- * 
- * @param {Array} roomList - a list of calendarIDs associated with the event
- * @param {String} startDateTime - ISO dateTime string
- * @param {String} endDateTime - ISO dateTime string
- * @param {String} recurrenceRule - rRule
- * @returns {Array} List of conflicting events (from database, verified with API if needed).
  */
 async function checkForConflicts(roomList, startDateTime, endDateTime, recurrenceRule) {
-  if (!startDateTime || !endDateTime) {
+  validateTimes(startDateTime, endDateTime);
+
+  const eventInstances = getEventInstances(startDateTime, endDateTime, recurrenceRule);
+  const normalizedRooms = await getNormalizedRoomList(roomList);
+
+  log.info(`[checkForConflicts] Checking ${normalizedRooms.length} rooms for conflicts`);
+
+  // 1. Fast path: Database lookup
+  const dbConflicts = await queryDatabaseConflicts(normalizedRooms, eventInstances);
+  log.info(`[checkForConflicts] Database found ${dbConflicts.length} conflicts`);
+
+  // 2. If DB finds conflicts, verify them with Google Calendar (Source of Truth)
+  if (dbConflicts.length > 0) {
+    return await verifyDbConflictsWithGoogle(normalizedRooms, eventInstances, dbConflicts);
+  }
+
+  // 3. Catch-all: If DB found nothing, ensure Google didn't miss anything (Sync catch-up)
+  return await verifyNoMissedGoogleConflicts(normalizedRooms, eventInstances);
+}
+
+// =========================================================================
+// EXTRACTION HELPERS (The "How It Works" Layer)
+// =========================================================================
+
+function validateTimes(start, end) {
+  if (!start || !end) {
     throw new Error("Event must include start time and end time.");
   }
+}
 
-  let eventInstances = [{ start: startDateTime, end: endDateTime }];
-
-  // Expand recurring events into separate instances
-  if (recurrenceRule && !recurrenceRule.includes('FREQ=;UNTIL') && recurrenceRule !== 'null') {
-    const expandedInstances = expandRecurringEvent(startDateTime, endDateTime, recurrenceRule);
-    eventInstances = [...eventInstances, ...expandedInstances];
+function getEventInstances(start, end, recurrenceRule) {
+  let instances = [{ start, end }];
+  const hasRecurrence = recurrenceRule && !recurrenceRule.includes('FREQ=;UNTIL') && recurrenceRule !== 'null';
+  
+  if (hasRecurrence) {
+    const expanded = expandRecurringEvent(start, end, recurrenceRule);
+    instances = [...instances, ...expanded];
   }
+  return instances;
+}
 
-  log.info('>> Expanded event instances:', eventInstances);
+async function getNormalizedRoomList(roomList) {
+  if (roomList && roomList.length > 0) return roomList;
+  
+  const { rows: allRooms } = await pool.query(`SELECT calendar_id FROM rooms`);
+  return allRooms.map(row => row.calendar_id);
+}
 
+/**
+ * Handles logic when the DB detects conflicts. Grabs Google data to confirm.
+ */
+async function verifyDbConflictsWithGoogle(roomList, instances, dbConflicts) {
   try {
-    // Normalize room list
-    if (!roomList || roomList.length === 0) {
-      const { rows: allRooms } = await pool.query(`SELECT calendar_id FROM rooms`);
-      roomList = allRooms.map(row => row.calendar_id);
-    }
-
-    log.info(`[checkForConflicts] Checking ${roomList.length} rooms for conflicts`);
-
-    // ========================================
-    // STEP 1: Fast database lookup
-    // ========================================
-    const dbConflicts = await queryDatabaseConflicts(roomList, eventInstances);
-    log.info(`[checkForConflicts] Database found ${dbConflicts.length} conflicts`);
-
-    // ========================================
-    // STEP 2: If conflicts found, they're likely accurate
-    // but verify with API to catch any database corruption
-    // ========================================
-    if (dbConflicts.length > 0) {
-      try {
-        const googleConflicts = await checkGoogleCalendarDirect(roomList, eventInstances);
-        
-        if (googleConflicts.length < dbConflicts.length) {
-          log.warn(`[checkForConflicts] ⚠️  DATABASE HAD FALSE POSITIVES: DB said ${dbConflicts.length} conflicts but Google only has ${googleConflicts.length}`);
-        } else if (googleConflicts.length > dbConflicts.length) {
-          log.warn(`[checkForConflicts] ⚠️  DATABASE MISSED EVENTS: DB had ${dbConflicts.length} but Google has ${googleConflicts.length}`);
-          // Sync the missing ones
-          await syncMissingEventsToDB(googleConflicts, roomList);
-        }
-        
-        // Return database results (they're more likely to be correct and have our normalized data)
-        return groupEventsByRoom(dbConflicts);
-      } catch (error) {
-        log.error("[checkForConflicts] API verification failed, using database results:", error.message);
-        return groupEventsByRoom(dbConflicts);
-      }
-    }
-
-    // ========================================
-    // STEP 3: No DB conflicts found
-    // But check if Google Calendar has conflicts we missed
-    // This catches sync failures and edge cases
-    // ========================================
-    log.info("[checkForConflicts] No database conflicts found, checking Google Calendar for missed events...");
+    const googleConflicts = await checkGoogleCalendarDirect(roomList, instances);
     
-    try {
-      const googleConflicts = await checkGoogleCalendarDirect(roomList, eventInstances);
-      
-      if (googleConflicts.length > 0) {
-        log.warn(`[checkForConflicts] ⚠️  FOUND ${googleConflicts.length} CONFLICTS IN GOOGLE NOT IN DATABASE!`);
-        log.warn("[checkForConflicts] Database appears out of sync. Syncing now...");
-        
-        // Sync these back to database for future checks
-        await syncMissingEventsToDB(googleConflicts, roomList);
-        
-        // Return the Google Calendar results
-        return googleConflicts.map(event => ({
-          room: event._roomId,
-          times: [{ start: event.start.dateTime, end: event.end.dateTime }]
-        }));
-      }
-      
-      log.info("[checkForConflicts] No conflicts found (database verified with API)");
-      return [];
-    } catch (error) {
-      log.error("[checkForConflicts] API check failed:", error.message);
-      // If API fails, trust database (better to be lenient than crash)
-      log.info("[checkForConflicts] Falling back to database results");
-      return [];
+    if (googleConflicts.length < dbConflicts.length) {
+      log.warn(`[checkForConflicts] ⚠️ DB FALSE POSITIVES: DB said ${dbConflicts.length} conflicts, Google said ${googleConflicts.length}`);
+      return formatGoogleConflicts(googleConflicts); 
+    } 
+    
+    if (googleConflicts.length > dbConflicts.length) {
+      log.warn(`[checkForConflicts] ⚠️ DB MISSED EVENTS: DB had ${dbConflicts.length} but Google has ${googleConflicts.length}`);
+      await syncMissingEventsToDB(googleConflicts, roomList);
+      return formatGoogleConflicts(googleConflicts);
     }
-
+    
+    // Exact match
+    return groupEventsByRoom(dbConflicts);
   } catch (error) {
-    log.error("Error checking conflicts:", error);
-    throw new Error("Failed to check for conflicts.");
+    log.error("[checkForConflicts] API verification failed, falling back to DB results:", error.message);
+    return groupEventsByRoom(dbConflicts);
   }
+}
+
+/**
+ * Handles logic when DB detects 0 conflicts, making sure Google agrees.
+ */
+async function verifyNoMissedGoogleConflicts(roomList, instances) {
+  log.info("[checkForConflicts] No database conflicts found, verifying with Google Calendar...");
+  
+  try {
+    const googleConflicts = await checkGoogleCalendarDirect(roomList, instances);
+    
+    if (googleConflicts.length > 0) {
+      log.warn(`[checkForConflicts] ⚠️ FOUND ${googleConflicts.length} MISSED CONFLICTS IN GOOGLE! Syncing...`);
+      await syncMissingEventsToDB(googleConflicts, roomList);
+      return formatGoogleConflicts(googleConflicts);
+    }
+    
+    log.info("[checkForConflicts] No conflicts found (DB verified with API)");
+    return [];
+  } catch (error) {
+    log.error("[checkForConflicts] API check failed, falling back to lenient DB result:", error.message);
+    return [];
+  }
+}
+
+/**
+ * Normalizes Google conflict shapes to match the expected return structure
+ */
+function formatGoogleConflicts(googleConflicts) {
+  return googleConflicts.map(event => ({
+    room: event._roomId,
+    times: [{ start: event.start.dateTime, end: event.end.dateTime }]
+  }));
 }
 
 /**
