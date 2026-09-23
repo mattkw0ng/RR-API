@@ -368,6 +368,7 @@ async function getNormalizedRoomList(roomList) {
  */
 async function verifyDbConflictsWithGoogle(roomList, instances, dbConflicts) {
   try {
+    log.info("Verifying Results with Google Calendar API");
     const googleConflicts = await checkGoogleCalendarDirect(roomList, instances);
     
     if (googleConflicts.length < dbConflicts.length) {
@@ -382,6 +383,7 @@ async function verifyDbConflictsWithGoogle(roomList, instances, dbConflicts) {
     }
     
     // Exact match
+    log.info("✅ Google Calendar results match Database")
     return groupEventsByRoom(dbConflicts);
   } catch (error) {
     log.error("[checkForConflicts] API verification failed, falling back to DB results:", error.message);

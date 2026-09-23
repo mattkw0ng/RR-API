@@ -11,6 +11,7 @@ const { createClient } = require('redis');
 const cookieParser = require('cookie-parser')
 const { authorize } = require("./utils/authorize");
 const { watchCalendar, syncAllCalendarsOnStartup } = require("./utils/webhook-utils");
+require('./cron/cron-jobs.js');
 
 // Import routes
 const authRoutes = require('./auth');
