@@ -42,7 +42,7 @@ const corsOptions = {
 
 // Initialize Redis
 const redisClient = createClient({
-  url: `redis://:7KB3DPlz9UTf@localhost:6379` // Replace with your Redis URL if it's different
+  url: `redis://:${process.env.REDIS_PASSWORD}@localhost:6379` // Replace with your Redis URL if it's different
 });
 redisClient.connect().catch(console.error);
 
